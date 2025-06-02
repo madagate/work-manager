@@ -94,8 +94,6 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="daily" className="space-y-6">
-            {/* Sticky Notes moved to top */}
-            <StickyNotes compact={true} language={language} />
             <DailyPurchases language={language} />
           </TabsContent>
 

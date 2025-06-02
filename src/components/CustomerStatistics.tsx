@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { BarChart3, User, Phone, Calendar, DollarSign, Package, TrendingUp, MessageCircle } from "lucide-react";
+import { BarChart3, User, Phone, Calendar, DollarSign, Package, TrendingUp } from "lucide-react";
 
 interface Purchase {
   id: string;
@@ -95,19 +96,10 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
     customer.phone.includes(searchTerm)
   );
 
-  const handleWhatsAppMessage = (customer: Customer) => {
-    const message = language === "ar" 
-      ? `مرحباً ${customer.name}، نحن نشتاق لك! لم نراك منذ فترة، هل لديك بطاريات تريد بيعها؟`
-      : `Hello ${customer.name}, we miss you! We haven't seen you for a while, do you have batteries to sell?`;
-    
-    const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
   const CustomerDetailsDialog = ({ customer }: { customer: Customer }) => (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+        <Button variant="outline" size="sm">
           {language === "ar" ? "عرض التفاصيل" : "View Details"}
         </Button>
       </DialogTrigger>
@@ -260,63 +252,34 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
             />
           </div>
 
-          {/* Customer Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid gap-4">
             {filteredCustomers.map((customer) => (
-              <Card key={customer.id} className="hover:shadow-lg transition-shadow border-2 border-gray-100">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 pb-3">
-                  <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-                      <User className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg text-gray-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {customer.name}
-                      </h3>
-                      <div className={`flex items-center gap-2 text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Phone className="w-4 h-4" />
-                        <span className="text-sm">{customer.phone}</span>
+              <Card key={customer.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          {customer.name}
+                        </h3>
+                        <div className={`flex items-center gap-2 text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <Phone className="w-4 h-4" />
+                          <span>{customer.phone}</span>
+                        </div>
+                        <div className={`flex items-center gap-4 text-sm text-gray-500 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {language === "ar" ? "عدد المشتريات:" : "Purchases:"} {customer.totalPurchases}
+                          </span>
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {language === "ar" ? "إجمالي المبلغ:" : "Total Amount:"} {customer.totalAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="p-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-green-50 rounded-lg">
-                      <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "المشتريات" : "Purchases"}
-                      </p>
-                      <p className="text-lg font-bold text-green-600">{customer.totalPurchases}</p>
-                    </div>
-                    <div className="text-center p-3 bg-blue-50 rounded-lg">
-                      <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "المبلغ" : "Amount"}
-                      </p>
-                      <p className="text-lg font-bold text-blue-600">
-                        {customer.totalAmount.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="text-center p-2 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      {language === "ar" ? "آخر شراء" : "Last Purchase"}
-                    </p>
-                    <p className="text-sm font-semibold">{customer.lastPurchase}</p>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Button
-                      onClick={() => handleWhatsAppMessage(customer)}
-                      className={`flex-1 flex items-center gap-2 bg-green-600 hover:bg-green-700 ${isRTL ? 'flex-row-reverse' : ''}`}
-                      size="sm"
-                      style={{ fontFamily: 'Tajawal, sans-serif' }}
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      {language === "ar" ? "واتساب" : "WhatsApp"}
-                    </Button>
+                    
                     <CustomerDetailsDialog customer={customer} />
                   </div>
                 </CardContent>
