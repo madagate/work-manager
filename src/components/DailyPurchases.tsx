@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CustomerSearchDialog } from "./CustomerSearchDialog";
-import { StickyNotes } from "./StickyNotes";
 import { DateNavigation } from "./DateNavigation";
 
 interface Purchase {
@@ -193,168 +191,159 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sticky Notes */}
-        <div className="lg:col-span-1">
-          <StickyNotes compact={true} language={language} />
-        </div>
-
-        {/* Daily Purchases Table */}
-        <div className="lg:col-span-2">
-          <Card className="shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-              <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                <CalendarDays className="w-5 h-5" />
-                {language === "ar" ? "المشتريات اليومية" : "Daily Purchases"}
-              </CardTitle>
-            </CardHeader>
-            
-            <CardContent className="p-0">
-              <div className="overflow-x-auto" ref={tableRef}>
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "العميل" : "Customer"}
-                      </th>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "نوع البطارية" : "Battery Type"}
-                      </th>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "الكمية" : "Quantity"}
-                      </th>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "السعر" : "Price"}
-                      </th>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "الإجمالي" : "Total"}
-                      </th>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "الخصم" : "Discount"}
-                      </th>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "الإجمالي النهائي" : "Final Total"}
-                      </th>
-                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {language === "ar" ? "إجراءات" : "Actions"}
-                      </th>
-                    </tr>
-                  </thead>
-                  
-                  <tbody>
-                    {purchases.map((purchase, index) => (
-                      <tr key={purchase.id} className="border-b hover:bg-gray-50">
-                        <td className="p-2">
-                          <Input
-                            id={`${index}-customerName`}
-                            value={purchase.customerName}
-                            onChange={(e) => handleCustomerInput(e.target.value, index)}
-                            onKeyDown={(e) => handleKeyDown(e, index, 'customerName')}
-                            onFocus={() => setFocusedCell({row: index, col: 'customerName'})}
-                            placeholder={language === "ar" ? "ابحث عن عميل..." : "Search customer..."}
-                            className={isRTL ? 'text-right' : 'text-left'}
-                            style={{ fontFamily: 'Tajawal, sans-serif' }}
-                          />
-                        </td>
-                        
-                        <td className="p-2">
-                          <Select
-                            value={purchase.batteryType}
-                            onValueChange={(value) => updatePurchase(index, 'batteryType', value)}
-                          >
-                            <SelectTrigger 
-                              id={`${index}-batteryType`}
-                              onKeyDown={(e) => handleKeyDown(e, index, 'batteryType')}
-                              className={isRTL ? 'text-right' : 'text-left'}
-                            >
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {batteryTypes.map((type) => (
-                                <SelectItem key={type} value={type} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                                  {type}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        
-                        <td className="p-2">
-                          <Input
-                            id={`${index}-quantity`}
-                            type="number"
-                            value={purchase.quantity || ''}
-                            onChange={(e) => updatePurchase(index, 'quantity', Number(e.target.value) || 0)}
-                            onKeyDown={(e) => handleKeyDown(e, index, 'quantity')}
-                            onFocus={() => setFocusedCell({row: index, col: 'quantity'})}
-                            className="text-center"
-                          />
-                        </td>
-                        
-                        <td className="p-2">
-                          <Input
-                            id={`${index}-price`}
-                            type="number"
-                            step="0.01"
-                            value={purchase.price || ''}
-                            onChange={(e) => updatePurchase(index, 'price', Number(e.target.value) || 0)}
-                            onKeyDown={(e) => handleKeyDown(e, index, 'price')}
-                            onFocus={() => setFocusedCell({row: index, col: 'price'})}
-                            className="text-center"
-                          />
-                        </td>
-                        
-                        <td className="p-2 text-center font-semibold">
-                          {purchase.total.toLocaleString()}
-                        </td>
-                        
-                        <td className="p-2">
-                          <Input
-                            id={`${index}-discount`}
-                            type="number"
-                            value={purchase.discount || ''}
-                            onChange={(e) => updatePurchase(index, 'discount', Number(e.target.value) || 0)}
-                            onKeyDown={(e) => handleKeyDown(e, index, 'discount')}
-                            onFocus={() => setFocusedCell({row: index, col: 'discount'})}
-                            className="text-center"
-                          />
-                        </td>
-                        
-                        <td className="p-2 text-center font-bold text-green-600">
-                          {purchase.finalTotal.toLocaleString()}
-                        </td>
-                        
-                        <td className="p-2 text-center">
-                          <Button
-                            onClick={() => deleteRow(index)}
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      {/* Daily Purchases Table - Full Width */}
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+          <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            <CalendarDays className="w-5 h-5" />
+            {language === "ar" ? "المشتريات اليومية" : "Daily Purchases"}
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="p-0">
+          <div className="overflow-x-auto" ref={tableRef}>
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "العميل" : "Customer"}
+                  </th>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "نوع البطارية" : "Battery Type"}
+                  </th>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "الكمية" : "Quantity"}
+                  </th>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "السعر" : "Price"}
+                  </th>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "الإجمالي" : "Total"}
+                  </th>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "الخصم" : "Discount"}
+                  </th>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "الإجمالي النهائي" : "Final Total"}
+                  </th>
+                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "إجراءات" : "Actions"}
+                  </th>
+                </tr>
+              </thead>
               
-              <div className="p-4 bg-gray-50 border-t">
-                <Button
-                  onClick={addRow}
-                  variant="outline"
-                  className="w-full flex items-center gap-2"
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  <Plus className="w-4 h-4" />
-                  {language === "ar" ? "إضافة سطر جديد" : "Add New Row"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              <tbody>
+                {purchases.map((purchase, index) => (
+                  <tr key={purchase.id} className="border-b hover:bg-gray-50">
+                    <td className="p-2">
+                      <Input
+                        id={`${index}-customerName`}
+                        value={purchase.customerName}
+                        onChange={(e) => handleCustomerInput(e.target.value, index)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'customerName')}
+                        onFocus={() => setFocusedCell({row: index, col: 'customerName'})}
+                        placeholder={language === "ar" ? "ابحث عن عميل..." : "Search customer..."}
+                        className={isRTL ? 'text-right' : 'text-left'}
+                        style={{ fontFamily: 'Tajawal, sans-serif' }}
+                      />
+                    </td>
+                    
+                    <td className="p-2">
+                      <Select
+                        value={purchase.batteryType}
+                        onValueChange={(value) => updatePurchase(index, 'batteryType', value)}
+                      >
+                        <SelectTrigger 
+                          id={`${index}-batteryType`}
+                          onKeyDown={(e) => handleKeyDown(e, index, 'batteryType')}
+                          className={isRTL ? 'text-right' : 'text-left'}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {batteryTypes.map((type) => (
+                            <SelectItem key={type} value={type} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                              {type}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    
+                    <td className="p-2">
+                      <Input
+                        id={`${index}-quantity`}
+                        type="number"
+                        value={purchase.quantity || ''}
+                        onChange={(e) => updatePurchase(index, 'quantity', Number(e.target.value) || 0)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'quantity')}
+                        onFocus={() => setFocusedCell({row: index, col: 'quantity'})}
+                        className="text-center"
+                      />
+                    </td>
+                    
+                    <td className="p-2">
+                      <Input
+                        id={`${index}-price`}
+                        type="number"
+                        step="0.01"
+                        value={purchase.price || ''}
+                        onChange={(e) => updatePurchase(index, 'price', Number(e.target.value) || 0)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'price')}
+                        onFocus={() => setFocusedCell({row: index, col: 'price'})}
+                        className="text-center"
+                      />
+                    </td>
+                    
+                    <td className="p-2 text-center font-semibold">
+                      {purchase.total.toLocaleString()}
+                    </td>
+                    
+                    <td className="p-2">
+                      <Input
+                        id={`${index}-discount`}
+                        type="number"
+                        value={purchase.discount || ''}
+                        onChange={(e) => updatePurchase(index, 'discount', Number(e.target.value) || 0)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'discount')}
+                        onFocus={() => setFocusedCell({row: index, col: 'discount'})}
+                        className="text-center"
+                      />
+                    </td>
+                    
+                    <td className="p-2 text-center font-bold text-green-600">
+                      {purchase.finalTotal.toLocaleString()}
+                    </td>
+                    
+                    <td className="p-2 text-center">
+                      <Button
+                        onClick={() => deleteRow(index)}
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="p-4 bg-gray-50 border-t">
+            <Button
+              onClick={addRow}
+              variant="outline"
+              className="w-full flex items-center gap-2"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            >
+              <Plus className="w-4 h-4" />
+              {language === "ar" ? "إضافة سطر جديد" : "Add New Row"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <CustomerSearchDialog
         open={showCustomerDialog}
