@@ -4,9 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Search, MessageCircle, Calendar, TrendingUp } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Users, Search, Calendar, TrendingUp, User, Package, DollarSign } from "lucide-react";
+
+interface Purchase {
+  id: string;
+  date: string;
+  batteryType: string;
+  quantity: number;
+  pricePerKg: number;
+  total: number;
+  discount: number;
+  finalTotal: number;
+}
 
 interface Customer {
   id: string;
@@ -16,6 +26,7 @@ interface Customer {
   totalPurchases: number;
   totalAmount: number;
   averagePrice: number;
+  purchases: Purchase[];
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -27,7 +38,29 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-15",
     totalPurchases: 15,
     totalAmount: 4500,
-    averagePrice: 300
+    averagePrice: 300,
+    purchases: [
+      {
+        id: "p1",
+        date: "2024-01-15",
+        batteryType: "بطاريات عادية",
+        quantity: 10,
+        pricePerKg: 25,
+        total: 250,
+        discount: 0,
+        finalTotal: 250
+      },
+      {
+        id: "p2",
+        date: "2024-01-10",
+        batteryType: "بطاريات جافة",
+        quantity: 15,
+        pricePerKg: 30,
+        total: 450,
+        discount: 50,
+        finalTotal: 400
+      }
+    ]
   },
   {
     id: "2", 
@@ -36,7 +69,19 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-10",
     totalPurchases: 8,
     totalAmount: 2400,
-    averagePrice: 300
+    averagePrice: 300,
+    purchases: [
+      {
+        id: "p3",
+        date: "2024-01-10",
+        batteryType: "بطاريات زجاج",
+        quantity: 20,
+        pricePerKg: 35,
+        total: 700,
+        discount: 100,
+        finalTotal: 600
+      }
+    ]
   },
   {
     id: "3",
@@ -45,38 +90,19 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-05",
     totalPurchases: 22,
     totalAmount: 6600,
-    averagePrice: 300
+    averagePrice: 300,
+    purchases: []
   }
 ];
 
-const whatsappMessages = {
-  ar: "مرحباً، طال انتظارنا لك في المحل. نتطلع لرؤيتك قريباً!",
-  en: "Hello! We've been waiting for you at the shop. Looking forward to seeing you soon!",
-  hi: "नमस्ते! हम दुकान में आपका इंतज़ार कर रहे हैं। जल्दी मिलने की उम्मीद है!",
-  bn: "হ্যালো! আমরা দোকানে আপনার জন্য অপেক্ষা করছি। শীঘ্রই দেখা হওয়ার আশায়!"
-};
-
 export const CustomerManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("ar");
   const [customers] = useState<Customer[]>(mockCustomers);
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone.includes(searchTerm)
   );
-
-  const sendWhatsAppMessage = (customer: Customer) => {
-    const message = whatsappMessages[selectedLanguage as keyof typeof whatsappMessages];
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${customer.phone.replace(/^0/, '966')}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-    
-    toast({
-      title: "تم فتح واتساب",
-      description: `تم فتح محادثة مع ${customer.name}`,
-    });
-  };
 
   const getDaysSinceLastPurchase = (lastPurchase: string) => {
     const today = new Date();
@@ -86,20 +112,155 @@ export const CustomerManagement = () => {
     return diffDays;
   };
 
+  const CustomerDetailsDialog = ({ customer }: { customer: Customer }) => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          عرض التفاصيل
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dir="rtl">
+        <DialogHeader>
+          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            إحصائيات العميل: {customer.name}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Customer Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <Package className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      عدد المشتريات
+                    </p>
+                    <p className="text-2xl font-bold">{customer.totalPurchases}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <DollarSign className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      إجمالي المبلغ
+                    </p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {customer.totalAmount.toLocaleString()} ريال
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                  <div>
+                    <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      آخر شراء
+                    </p>
+                    <p className="font-semibold">{customer.lastPurchase}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 flex-row-reverse">
+                  <TrendingUp className="w-5 h-5 text-orange-600" />
+                  <div>
+                    <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      متوسط الشراء
+                    </p>
+                    <p className="font-semibold">
+                      {Math.round(customer.totalAmount / customer.totalPurchases).toLocaleString()} ريال
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Purchase History */}
+          <Card>
+            <CardHeader>
+              <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                تاريخ المشتريات
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="p-3 font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        التاريخ
+                      </th>
+                      <th className="p-3 font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        نوع البطارية
+                      </th>
+                      <th className="p-3 font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        الكمية
+                      </th>
+                      <th className="p-3 font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        سعر الكيلو
+                      </th>
+                      <th className="p-3 font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        الإجمالي
+                      </th>
+                      <th className="p-3 font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        الخصم
+                      </th>
+                      <th className="p-3 font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        المبلغ النهائي
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customer.purchases.map((purchase) => (
+                      <tr key={purchase.id} className="border-b hover:bg-gray-50">
+                        <td className="p-3">{purchase.date}</td>
+                        <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{purchase.batteryType}</td>
+                        <td className="p-3">{purchase.quantity}</td>
+                        <td className="p-3">{purchase.pricePerKg}</td>
+                        <td className="p-3">{purchase.total.toLocaleString()}</td>
+                        <td className="p-3">{purchase.discount.toLocaleString()}</td>
+                        <td className="p-3 font-bold text-green-600">{purchase.finalTotal.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <Card className="shadow-lg">
         <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
-          <CardTitle className="flex items-center gap-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+          <CardTitle className="flex items-center gap-2 flex-row-reverse" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             <Users className="w-5 h-5" />
             إدارة العملاء
           </CardTitle>
         </CardHeader>
         
         <CardContent className="p-6">
-          <div className="flex gap-4 mb-6">
-            <div className="relative flex-1">
+          <div className="mb-6">
+            <div className="relative">
               <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="ابحث عن عميل..."
@@ -109,18 +270,6 @@ export const CustomerManagement = () => {
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
               />
             </div>
-            
-            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ar">العربية</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="hi">हिन्दी</SelectItem>
-                <SelectItem value="bn">বাংলা</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Statistics Cards */}
@@ -173,7 +322,7 @@ export const CustomerManagement = () => {
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-row-reverse">
                       <h3 className="text-lg font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                         {customer.name}
                       </h3>
@@ -212,14 +361,7 @@ export const CustomerManagement = () => {
                       </div>
                     </div>
                     
-                    <Button
-                      onClick={() => sendWhatsAppMessage(customer)}
-                      className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                      style={{ fontFamily: 'Tajawal, sans-serif' }}
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      واتساب
-                    </Button>
+                    <CustomerDetailsDialog customer={customer} />
                   </div>
                 </div>
               </CardContent>

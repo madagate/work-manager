@@ -1,7 +1,11 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-import { TrendingUp, DollarSign, Package, Users, Calendar, Battery } from "lucide-react";
+import { TrendingUp, DollarSign, Package, Users, Calendar, Battery, Trash2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface StatisticsPageProps {
   language?: string;
@@ -36,7 +40,17 @@ const monthlyData = [
 ];
 
 export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
+  const [showClearDialog, setShowClearDialog] = useState(false);
   const isRTL = language === "ar";
+
+  const clearAllData = () => {
+    // Here you would clear all data from the database
+    toast({
+      title: language === "ar" ? "تم مسح البيانات" : "Data Cleared",
+      description: language === "ar" ? "تم مسح جميع البيانات بنجاح" : "All data has been cleared successfully",
+    });
+    setShowClearDialog(false);
+  };
 
   const summaryCards = [
     {
@@ -75,6 +89,38 @@ export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Clear Data Button */}
+      <div className="flex justify-end">
+        <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+          <DialogTrigger asChild>
+            <Button variant="destructive" className="flex items-center gap-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              <Trash2 className="w-4 h-4" />
+              {language === "ar" ? "تصفية البيانات" : "Clear Data"}
+            </Button>
+          </DialogTrigger>
+          <DialogContent dir={isRTL ? "rtl" : "ltr"}>
+            <DialogHeader>
+              <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                {language === "ar" ? "تأكيد مسح البيانات" : "Confirm Data Clearing"}
+              </DialogTitle>
+            </DialogHeader>
+            <p style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              {language === "ar" 
+                ? "هل أنت متأكد من رغبتك في مسح جميع البيانات؟ هذا الإجراء لا يمكن التراجع عنه." 
+                : "Are you sure you want to clear all data? This action cannot be undone."}
+            </p>
+            <DialogFooter className={isRTL ? "flex-row-reverse" : ""}>
+              <Button variant="outline" onClick={() => setShowClearDialog(false)}>
+                {language === "ar" ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button variant="destructive" onClick={clearAllData}>
+                {language === "ar" ? "مسح البيانات" : "Clear Data"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {summaryCards.map((card, index) => (

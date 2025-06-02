@@ -3,11 +3,11 @@ import { useState, useEffect } from "react";
 import { DailyPurchases } from "@/components/DailyPurchases";
 import { CustomerManagement } from "@/components/CustomerManagement";
 import { StickyNotes } from "@/components/StickyNotes";
-import { CustomerStatistics } from "@/components/CustomerStatistics";
 import { StatisticsPage } from "@/components/StatisticsPage";
 import { Navigation } from "@/components/Navigation";
-import { Calendar, Users, StickyNote, BarChart } from "lucide-react";
+import { Calendar, Users, StickyNote, BarChart, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CustomerFollowUp from "./CustomerFollowUp";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("daily");
@@ -29,6 +29,7 @@ const Index = () => {
     const texts = {
       daily: { ar: "المشتريات اليومية", en: "Daily Purchases" },
       customers: { ar: "إدارة العملاء", en: "Customer Management" },
+      followup: { ar: "متابعة العملاء", en: "Customer Follow-up" },
       notes: { ar: "الملاحظات", en: "Notes" },
       statistics: { ar: "الإحصائيات", en: "Statistics" }
     };
@@ -58,7 +59,7 @@ const Index = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white shadow-lg">
+          <TabsList className="grid w-full grid-cols-5 mb-8 bg-white shadow-lg">
             <TabsTrigger 
               value="daily" 
               className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
@@ -74,6 +75,14 @@ const Index = () => {
             >
               <Users className="w-4 h-4" />
               {getTabText("customers")}
+            </TabsTrigger>
+            <TabsTrigger 
+              value="followup" 
+              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            >
+              <MessageCircle className="w-4 h-4" />
+              {getTabText("followup")}
             </TabsTrigger>
             <TabsTrigger 
               value="notes" 
@@ -94,12 +103,17 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="daily" className="space-y-6">
+            {/* Move StickyNotes to top of daily purchases */}
+            <StickyNotes compact={true} language={language} />
             <DailyPurchases language={language} />
           </TabsContent>
 
           <TabsContent value="customers" className="space-y-6">
             <CustomerManagement />
-            <CustomerStatistics language={language} />
+          </TabsContent>
+
+          <TabsContent value="followup" className="space-y-6">
+            <CustomerFollowUp />
           </TabsContent>
 
           <TabsContent value="notes" className="space-y-6">
