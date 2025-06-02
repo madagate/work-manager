@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, Plus, Trash2, Calendar } from "lucide-react";
+import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CustomerSearchDialog } from "./CustomerSearchDialog";
 import { StickyNotes } from "./StickyNotes";
+import { DateNavigation } from "./DateNavigation";
 
 interface Purchase {
   id: string;
@@ -28,7 +29,11 @@ const batteryTypes = [
   "رصاص"
 ];
 
-export const DailyPurchases = () => {
+interface DailyPurchasesProps {
+  language?: string;
+}
+
+export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
   const [purchases, setPurchases] = useState<Purchase[]>([
     {
@@ -46,7 +51,10 @@ export const DailyPurchases = () => {
   const [focusedCell, setFocusedCell] = useState<{row: number, col: string} | null>(null);
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [selectedRowForCustomer, setSelectedRowForCustomer] = useState<number>(0);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
   const tableRef = useRef<HTMLDivElement>(null);
+  
+  const isRTL = language === "ar";
 
   const calculateTotals = (purchase: Purchase): Purchase => {
     const total = Math.round(purchase.quantity * purchase.price);
@@ -81,10 +89,23 @@ export const DailyPurchases = () => {
     if (purchases.length > 1) {
       setPurchases(prev => prev.filter((_, i) => i !== index));
       toast({
-        title: "تم حذف السطر",
-        description: "تم حذف السطر بنجاح",
+        title: language === "ar" ? "تم حذف السطر" : "Row Deleted",
+        description: language === "ar" ? "تم حذف السطر بنجاح" : "Row deleted successfully",
       });
     }
+  };
+
+  const clearAllData = () => {
+    setPurchases([{
+      id: "1",
+      customerName: "",
+      batteryType: "بطاريات عادية",
+      quantity: 0,
+      price: 0,
+      total: 0,
+      discount: 0,
+      finalTotal: 0
+    }]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, rowIndex: number, field: string) => {
@@ -95,13 +116,11 @@ export const DailyPurchases = () => {
     if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
       
-      // Move to next field in same row, or first field of next row
       if (currentFieldIndex < fields.length - 1) {
         setFocusedCell({ row: rowIndex, col: fields[currentFieldIndex + 1] });
       } else if (rowIndex < totalRows - 1) {
         setFocusedCell({ row: rowIndex + 1, col: fields[0] });
       } else {
-        // Add new row if we're at the last cell
         addRow();
         setTimeout(() => {
           setFocusedCell({ row: totalRows, col: fields[0] });
@@ -122,14 +141,23 @@ export const DailyPurchases = () => {
     }
   };
 
-  const handleCustomerSearch = (rowIndex: number) => {
-    setSelectedRowForCustomer(rowIndex);
-    setShowCustomerDialog(true);
+  const handleCustomerInput = (value: string, rowIndex: number) => {
+    updatePurchase(rowIndex, 'customerName', value);
+    setCustomerSearchTerm(value);
+    
+    // If customer doesn't exist, show dialog after a short delay
+    if (value.trim() && value.length > 2) {
+      setTimeout(() => {
+        setSelectedRowForCustomer(rowIndex);
+        setShowCustomerDialog(true);
+      }, 500);
+    }
   };
 
   const handleCustomerSelect = (customer: any) => {
     updatePurchase(selectedRowForCustomer, 'customerName', customer.name);
     setShowCustomerDialog(false);
+    setCustomerSearchTerm("");
   };
 
   const totalDailyAmount = purchases.reduce((sum, purchase) => sum + purchase.finalTotal, 0);
@@ -146,25 +174,21 @@ export const DailyPurchases = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Date and Total */}
-      <div className="flex justify-between items-center bg-white rounded-lg shadow-lg p-6">
-        <div className="flex items-center gap-4">
-          <Calendar className="w-6 h-6 text-blue-600" />
-          <input
-            type="date"
-            value={currentDate}
-            onChange={(e) => setCurrentDate(e.target.value)}
-            className="text-lg font-semibold border rounded-lg px-3 py-2"
-            style={{ fontFamily: 'Tajawal, sans-serif' }}
-          />
-        </div>
+      {/* Header with Date Navigation and Total */}
+      <div className={`flex justify-between items-center bg-white rounded-lg shadow-lg p-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <DateNavigation 
+          currentDate={currentDate}
+          onDateChange={setCurrentDate}
+          onClearData={clearAllData}
+          language={language}
+        />
         
-        <div className="text-left">
+        <div className={isRTL ? 'text-right' : 'text-left'}>
           <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            إجمالي مشتريات اليوم
+            {language === "ar" ? "إجمالي مشتريات اليوم" : "Daily Total"}
           </p>
           <p className="text-2xl font-bold text-green-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            {totalDailyAmount.toLocaleString()} ريال
+            {totalDailyAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
           </p>
         </div>
       </div>
@@ -172,16 +196,16 @@ export const DailyPurchases = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sticky Notes */}
         <div className="lg:col-span-1">
-          <StickyNotes compact={true} />
+          <StickyNotes compact={true} language={language} />
         </div>
 
         {/* Daily Purchases Table */}
         <div className="lg:col-span-2">
           <Card className="shadow-lg">
             <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-              <CardTitle className="flex items-center gap-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
                 <CalendarDays className="w-5 h-5" />
-                المشتريات اليومية
+                {language === "ar" ? "المشتريات اليومية" : "Daily Purchases"}
               </CardTitle>
             </CardHeader>
             
@@ -190,14 +214,30 @@ export const DailyPurchases = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>العميل</th>
-                      <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>نوع البطارية</th>
-                      <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية</th>
-                      <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر</th>
-                      <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي</th>
-                      <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الخصم</th>
-                      <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي النهائي</th>
-                      <th className="p-3 text-center font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>إجراءات</th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "العميل" : "Customer"}
+                      </th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "نوع البطارية" : "Battery Type"}
+                      </th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "الكمية" : "Quantity"}
+                      </th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "السعر" : "Price"}
+                      </th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "الإجمالي" : "Total"}
+                      </th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "الخصم" : "Discount"}
+                      </th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "الإجمالي النهائي" : "Final Total"}
+                      </th>
+                      <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {language === "ar" ? "إجراءات" : "Actions"}
+                      </th>
                     </tr>
                   </thead>
                   
@@ -208,12 +248,11 @@ export const DailyPurchases = () => {
                           <Input
                             id={`${index}-customerName`}
                             value={purchase.customerName}
-                            onChange={(e) => updatePurchase(index, 'customerName', e.target.value)}
+                            onChange={(e) => handleCustomerInput(e.target.value, index)}
                             onKeyDown={(e) => handleKeyDown(e, index, 'customerName')}
                             onFocus={() => setFocusedCell({row: index, col: 'customerName'})}
-                            onClick={() => handleCustomerSearch(index)}
-                            placeholder="اضغط للبحث عن عميل"
-                            className="text-right"
+                            placeholder={language === "ar" ? "ابحث عن عميل..." : "Search customer..."}
+                            className={isRTL ? 'text-right' : 'text-left'}
                             style={{ fontFamily: 'Tajawal, sans-serif' }}
                           />
                         </td>
@@ -226,7 +265,7 @@ export const DailyPurchases = () => {
                             <SelectTrigger 
                               id={`${index}-batteryType`}
                               onKeyDown={(e) => handleKeyDown(e, index, 'batteryType')}
-                              className="text-right"
+                              className={isRTL ? 'text-right' : 'text-left'}
                             >
                               <SelectValue />
                             </SelectTrigger>
@@ -309,7 +348,7 @@ export const DailyPurchases = () => {
                   style={{ fontFamily: 'Tajawal, sans-serif' }}
                 >
                   <Plus className="w-4 h-4" />
-                  إضافة سطر جديد
+                  {language === "ar" ? "إضافة سطر جديد" : "Add New Row"}
                 </Button>
               </div>
             </CardContent>
@@ -321,6 +360,8 @@ export const DailyPurchases = () => {
         open={showCustomerDialog}
         onClose={() => setShowCustomerDialog(false)}
         onCustomerSelect={handleCustomerSelect}
+        searchTerm={customerSearchTerm}
+        language={language}
       />
     </div>
   );

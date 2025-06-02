@@ -102,9 +102,29 @@
   text-align: right;
 }
 
-[dir="rtl"] input,
-[dir="rtl"] textarea {
+[dir="ltr"] {
+  text-align: left;
+}
+
+[dir="rtl"] input:not([dir="ltr"]),
+[dir="rtl"] textarea:not([dir="ltr"]) {
   text-align: right;
+}
+
+[dir="ltr"] input:not([dir="rtl"]),
+[dir="ltr"] textarea:not([dir="rtl"]) {
+  text-align: left;
+}
+
+/* Flexbox RTL Support */
+[dir="rtl"] .flex-row-reverse {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+  margin-right: calc(1rem * var(--tw-space-x-reverse));
+  margin-left: calc(1rem * calc(1 - var(--tw-space-x-reverse)));
 }
 
 /* Arabic Font Styling */
@@ -141,7 +161,16 @@ table {
 td, th {
   border: 1px solid #e2e8f0;
   padding: 12px;
+}
+
+[dir="rtl"] td, 
+[dir="rtl"] th {
   text-align: right;
+}
+
+[dir="ltr"] td, 
+[dir="ltr"] th {
+  text-align: left;
 }
 
 th {
@@ -168,4 +197,39 @@ select:focus {
   table {
     min-width: 600px;
   }
+}
+
+/* Enhanced RTL/LTR Support for Components */
+[dir="rtl"] .text-right {
+  text-align: right;
+}
+
+[dir="ltr"] .text-left {
+  text-align: left;
+}
+
+[dir="rtl"] .justify-end {
+  justify-content: flex-end;
+}
+
+[dir="ltr"] .justify-start {
+  justify-content: flex-start;
+}
+
+/* Dialog and Modal RTL Support */
+[dir="rtl"] [data-radix-dialog-content] {
+  direction: rtl;
+}
+
+[dir="ltr"] [data-radix-dialog-content] {
+  direction: ltr;
+}
+
+/* Select Component RTL Support */
+[dir="rtl"] [data-radix-select-trigger] {
+  text-align: right;
+}
+
+[dir="ltr"] [data-radix-select-trigger] {
+  text-align: left;
 }

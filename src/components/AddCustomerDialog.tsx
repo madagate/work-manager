@@ -18,19 +18,28 @@ interface AddCustomerDialogProps {
   onClose: () => void;
   onCustomerAdded: (customer: Customer) => void;
   initialName?: string;
+  language?: string;
 }
 
-export const AddCustomerDialog = ({ open, onClose, onCustomerAdded, initialName = "" }: AddCustomerDialogProps) => {
+export const AddCustomerDialog = ({ 
+  open, 
+  onClose, 
+  onCustomerAdded, 
+  initialName = "",
+  language = "ar" 
+}: AddCustomerDialogProps) => {
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState("");
+
+  const isRTL = language === "ar";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!name.trim() || !phone.trim()) {
       toast({
-        title: "خطأ في البيانات",
-        description: "يرجى إدخال الاسم ورقم الجوال",
+        title: language === "ar" ? "خطأ في البيانات" : "Data Error",
+        description: language === "ar" ? "يرجى إدخال الاسم ورقم الجوال" : "Please enter name and phone number",
         variant: "destructive",
       });
       return;
@@ -45,8 +54,8 @@ export const AddCustomerDialog = ({ open, onClose, onCustomerAdded, initialName 
     onCustomerAdded(newCustomer);
     
     toast({
-      title: "تم إضافة العميل",
-      description: `تم إضافة العميل ${name} بنجاح`,
+      title: language === "ar" ? "تم إضافة العميل" : "Customer Added",
+      description: language === "ar" ? `تم إضافة العميل ${name} بنجاح` : `Customer ${name} added successfully`,
     });
 
     // Reset form
@@ -56,23 +65,23 @@ export const AddCustomerDialog = ({ open, onClose, onCustomerAdded, initialName 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md" dir="rtl">
+      <DialogContent className="max-w-md" dir={isRTL ? "rtl" : "ltr"}>
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            إضافة عميل جديد
+            {language === "ar" ? "إضافة عميل جديد" : "Add New Customer"}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="customerName" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              اسم العميل
+              {language === "ar" ? "اسم العميل" : "Customer Name"}
             </Label>
             <Input
               id="customerName"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="أدخل اسم العميل"
+              placeholder={language === "ar" ? "أدخل اسم العميل" : "Enter customer name"}
               className="mt-1"
               style={{ fontFamily: 'Tajawal, sans-serif' }}
               autoFocus
@@ -81,7 +90,7 @@ export const AddCustomerDialog = ({ open, onClose, onCustomerAdded, initialName 
 
           <div>
             <Label htmlFor="customerPhone" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              رقم الجوال
+              {language === "ar" ? "رقم الجوال" : "Phone Number"}
             </Label>
             <Input
               id="customerPhone"
@@ -93,9 +102,9 @@ export const AddCustomerDialog = ({ open, onClose, onCustomerAdded, initialName 
             />
           </div>
 
-          <div className="flex gap-2 pt-4">
+          <div className={`flex gap-2 pt-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <Button type="submit" className="flex-1" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              إضافة العميل
+              {language === "ar" ? "إضافة العميل" : "Add Customer"}
             </Button>
             <Button 
               type="button" 
@@ -104,7 +113,7 @@ export const AddCustomerDialog = ({ open, onClose, onCustomerAdded, initialName 
               className="flex-1"
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             >
-              إلغاء
+              {language === "ar" ? "إلغاء" : "Cancel"}
             </Button>
           </div>
         </form>

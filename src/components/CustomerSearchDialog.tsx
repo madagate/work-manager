@@ -24,15 +24,30 @@ interface CustomerSearchDialogProps {
   open: boolean;
   onClose: () => void;
   onCustomerSelect: (customer: Customer) => void;
+  searchTerm?: string;
+  language?: string;
 }
 
-export const CustomerSearchDialog = ({ open, onClose, onCustomerSelect }: CustomerSearchDialogProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
+export const CustomerSearchDialog = ({ 
+  open, 
+  onClose, 
+  onCustomerSelect, 
+  searchTerm = "",
+  language = "ar" 
+}: CustomerSearchDialogProps) => {
+  const [internalSearchTerm, setInternalSearchTerm] = useState(searchTerm);
   const [showAddCustomer, setShowAddCustomer] = useState(false);
-  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>(mockCustomers);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>(
+    mockCustomers.filter(customer => 
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.phone.includes(searchTerm)
+    )
+  );
+
+  const isRTL = language === "ar";
 
   const handleSearch = (term: string) => {
-    setSearchTerm(term);
+    setInternalSearchTerm(term);
     const filtered = mockCustomers.filter(customer => 
       customer.name.toLowerCase().includes(term.toLowerCase()) ||
       customer.phone.includes(term)
@@ -53,25 +68,44 @@ export const CustomerSearchDialog = ({ open, onClose, onCustomerSelect }: Custom
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md" dir={isRTL ? "rtl" : "ltr"}>
           <DialogHeader>
             <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              البحث عن عميل
+              {language === "ar" ? "البحث عن عميل" : "Search Customer"}
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="relative">
-              <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className={`absolute top-3 h-4 w-4 text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`} />
               <Input
-                placeholder="ابحث بالاسم أو رقم الجوال..."
-                value={searchTerm}
+                placeholder={language === "ar" ? "ابحث بالاسم أو رقم الجوال..." : "Search by name or phone..."}
+                value={internalSearchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pr-10"
+                className={isRTL ? 'pr-10' : 'pl-10'}
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
                 autoFocus
               />
             </div>
+
+            {internalSearchTerm && filteredCustomers.length === 0 && (
+              <div className="text-center py-4 border rounded-lg bg-yellow-50">
+                <p className="text-gray-600 mb-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? `العميل "${internalSearchTerm}" غير موجود` : `Customer "${internalSearchTerm}" not found`}
+                </p>
+                <p className="text-sm text-gray-500 mb-4" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "هل تريد إضافته كعميل جديد؟" : "Would you like to add them as a new customer?"}
+                </p>
+                <Button
+                  onClick={handleAddNewCustomer}
+                  className="flex items-center gap-2"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  {language === "ar" ? "إضافة عميل جديد" : "Add New Customer"}
+                </Button>
+              </div>
+            )}
 
             <div className="max-h-60 overflow-y-auto space-y-2">
               {filteredCustomers.length > 0 ? (
@@ -81,7 +115,7 @@ export const CustomerSearchDialog = ({ open, onClose, onCustomerSelect }: Custom
                     onClick={() => onCustomerSelect(customer)}
                     className="p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <User className="w-5 h-5 text-blue-600" />
                       <div className="flex-1">
                         <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
@@ -92,28 +126,20 @@ export const CustomerSearchDialog = ({ open, onClose, onCustomerSelect }: Custom
                         </p>
                         {customer.lastPurchase && (
                           <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            آخر شراء: {customer.lastPurchase}
+                            {language === "ar" ? "آخر شراء:" : "Last purchase:"} {customer.lastPurchase}
                           </p>
                         )}
                       </div>
                     </div>
                   </div>
                 ))
-              ) : (
+              ) : internalSearchTerm === "" ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    لم يتم العثور على عملاء
+                    {language === "ar" ? "ابدأ بالكتابة للبحث عن عميل" : "Start typing to search for customers"}
                   </p>
-                  <Button
-                    onClick={handleAddNewCustomer}
-                    className="flex items-center gap-2"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    <Plus className="w-4 h-4" />
-                    إضافة عميل جديد
-                  </Button>
                 </div>
-              )}
+              ) : null}
             </div>
 
             {filteredCustomers.length > 0 && (
@@ -124,7 +150,7 @@ export const CustomerSearchDialog = ({ open, onClose, onCustomerSelect }: Custom
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
               >
                 <Plus className="w-4 h-4" />
-                إضافة عميل جديد
+                {language === "ar" ? "إضافة عميل جديد" : "Add New Customer"}
               </Button>
             )}
           </div>
@@ -135,7 +161,8 @@ export const CustomerSearchDialog = ({ open, onClose, onCustomerSelect }: Custom
         open={showAddCustomer}
         onClose={() => setShowAddCustomer(false)}
         onCustomerAdded={handleCustomerAdded}
-        initialName={searchTerm}
+        initialName={internalSearchTerm}
+        language={language}
       />
     </>
   );
