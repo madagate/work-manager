@@ -130,34 +130,34 @@ const CustomerFollowUp = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50" dir="rtl">
-      <div className="container mx-auto p-6 max-w-7xl">
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             متابعة العملاء
           </h1>
-          <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+          <p className="text-sm sm:text-base text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             تواصل مع العملاء وتابع حالة الرسائل المرسلة
           </p>
         </div>
 
         {/* Search Header */}
-        <Card className="shadow-lg mb-8">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
-            <CardTitle className="flex items-center gap-2 flex-row-reverse" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              <Users className="w-5 h-5" />
+        <Card className="shadow-lg mb-6 sm:mb-8">
+          <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
               متابعة العملاء ({filteredCustomers.length})
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="relative">
               <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="ابحث عن عميل بالاسم أو رقم الجوال..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pr-10 text-right"
+                className="pr-10 text-right text-sm"
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
               />
             </div>
@@ -165,7 +165,7 @@ const CustomerFollowUp = () => {
         </Card>
 
         {/* Customers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredCustomers.map(customer => {
             const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
             const daysSinceLastMessage = getDaysSinceLastMessage(customer.lastMessageSent);
@@ -179,14 +179,14 @@ const CustomerFollowUp = () => {
                   isInactive ? 'border-orange-200 bg-orange-50' : 'border-blue-200 bg-white'
                 }`}
               >
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-3 p-3 sm:p-4">
                   <div className="flex justify-between items-start flex-row-reverse">
-                    <div className="text-right">
-                      <h3 className="text-lg font-bold text-gray-800 mb-1" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    <div className="text-right flex-1">
+                      <h3 className="text-sm sm:text-lg font-bold text-gray-800 mb-1 truncate" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                         {customer.name}
                       </h3>
-                      <div className="flex items-center gap-2 flex-row-reverse text-sm text-gray-600">
-                        <Phone className="w-4 h-4" />
+                      <div className="flex items-center gap-2 flex-row-reverse text-xs sm:text-sm text-gray-600">
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.phone}</span>
                       </div>
                     </div>
@@ -206,17 +206,17 @@ const CustomerFollowUp = () => {
                   </div>
                 </CardHeader>
                 
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 p-3 sm:p-4">
                   <div className="space-y-3">
                     {/* Purchase Info */}
-                    <div className="bg-blue-50 rounded-lg p-3">
+                    <div className="bg-blue-50 rounded-lg p-2 sm:p-3">
                       <div className="flex items-center gap-2 flex-row-reverse mb-2">
-                        <Calendar className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-semibold text-blue-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                        <span className="text-xs sm:text-sm font-semibold text-blue-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                           آخر شراء
                         </span>
                       </div>
-                      <p className="text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      <p className="text-xs sm:text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                         {customer.lastPurchase}
                       </p>
                       <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
@@ -226,14 +226,14 @@ const CustomerFollowUp = () => {
 
                     {/* WhatsApp Message Info */}
                     {customer.lastMessageSent && (
-                      <div className="bg-green-50 rounded-lg p-3">
+                      <div className="bg-green-50 rounded-lg p-2 sm:p-3">
                         <div className="flex items-center gap-2 flex-row-reverse mb-2">
-                          <MessageCircle className="w-4 h-4 text-green-600" />
-                          <span className="text-sm font-semibold text-green-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                          <span className="text-xs sm:text-sm font-semibold text-green-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             آخر رسالة واتساب
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        <p className="text-xs sm:text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                           {customer.lastMessageSent}
                         </p>
                         <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
@@ -246,18 +246,18 @@ const CustomerFollowUp = () => {
                     <div className="grid grid-cols-2 gap-2 text-center">
                       <div className="bg-gray-50 rounded p-2">
                         <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>المشتريات</p>
-                        <p className="font-bold text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalPurchases}</p>
+                        <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalPurchases}</p>
                       </div>
                       <div className="bg-gray-50 rounded p-2">
                         <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي</p>
-                        <p className="font-bold text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalAmount.toLocaleString()} ر.س</p>
+                        <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalAmount.toLocaleString()} ر.س</p>
                       </div>
                     </div>
 
                     {/* WhatsApp Button */}
                     <Button
                       onClick={() => sendWhatsAppMessage(customer)}
-                      className={`w-full flex items-center gap-2 flex-row-reverse ${
+                      className={`w-full flex items-center gap-2 flex-row-reverse text-xs sm:text-sm ${
                         customer.messageSent 
                           ? 'bg-gray-400 hover:bg-gray-500' 
                           : 'bg-green-600 hover:bg-green-700'
@@ -265,7 +265,7 @@ const CustomerFollowUp = () => {
                       style={{ fontFamily: 'Tajawal, sans-serif' }}
                       disabled={customer.messageSent}
                     >
-                      <MessageCircle className="w-4 h-4" />
+                      <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                       {customer.messageSent ? "تم الإرسال" : "إرسال واتساب"}
                     </Button>
                   </div>
@@ -278,9 +278,9 @@ const CustomerFollowUp = () => {
         {/* Empty State */}
         {filteredCustomers.length === 0 && (
           <Card className="shadow-md mt-8">
-            <CardContent className="p-12 text-center">
-              <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500 text-lg" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            <CardContent className="p-8 sm:p-12 text-center">
+              <Users className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500 text-sm sm:text-lg" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                 لا توجد عملاء مطابقين للبحث
               </p>
             </CardContent>

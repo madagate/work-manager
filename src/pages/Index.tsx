@@ -48,79 +48,79 @@ const Index = () => {
     <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-green-50`} dir={isRTL ? "rtl" : "ltr"}>
       <Navigation onLanguageChange={handleLanguageChange} />
       
-      <div className="container mx-auto p-6 max-w-7xl">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+      <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             {getMainTitle()}
           </h1>
-          <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+          <p className="text-sm sm:text-base text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             {getMainDescription()}
           </p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
-          <TabsList className="grid w-full grid-cols-5 mb-8 bg-white shadow-lg">
+          <TabsList className="grid w-full grid-cols-5 mb-6 sm:mb-8 bg-white shadow-lg overflow-x-auto">
             <TabsTrigger 
               value="daily" 
-              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             >
-              <Calendar className="w-4 h-4" />
-              {getTabText("daily")}
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">{getTabText("daily")}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="customers" 
-              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             >
-              <Users className="w-4 h-4" />
-              {getTabText("customers")}
+              <Users className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">{getTabText("customers")}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="followup" 
-              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             >
-              <MessageCircle className="w-4 h-4" />
-              {getTabText("followup")}
+              <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">{getTabText("followup")}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="notes" 
-              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             >
-              <StickyNote className="w-4 h-4" />
-              {getTabText("notes")}
+              <StickyNote className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">{getTabText("notes")}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="statistics" 
-              className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             >
-              <BarChart className="w-4 h-4" />
-              {getTabText("statistics")}
+              <BarChart className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">{getTabText("statistics")}</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="daily" className="space-y-6">
+          <TabsContent value="daily" className="space-y-4 sm:space-y-6">
             {/* Move StickyNotes to top of daily purchases */}
             <StickyNotes compact={true} language={language} />
             <DailyPurchases language={language} />
           </TabsContent>
 
-          <TabsContent value="customers" className="space-y-6">
+          <TabsContent value="customers" className="space-y-4 sm:space-y-6">
             <CustomerManagement />
           </TabsContent>
 
-          <TabsContent value="followup" className="space-y-6">
+          <TabsContent value="followup" className="space-y-4 sm:space-y-6">
             <CustomerFollowUp />
           </TabsContent>
 
-          <TabsContent value="notes" className="space-y-6">
+          <TabsContent value="notes" className="space-y-4 sm:space-y-6">
             <StickyNotes language={language} />
           </TabsContent>
 
-          <TabsContent value="statistics" className="space-y-6">
+          <TabsContent value="statistics" className="space-y-4 sm:space-y-6">
             <StatisticsPage language={language} />
           </TabsContent>
         </Tabs>
