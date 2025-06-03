@@ -90,44 +90,118 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
 
   if (compact) {
     return (
-      <Card className="shadow-lg h-fit">
-        <CardHeader className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white pb-3">
-          <CardTitle className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            <StickyNote className="w-4 h-4" />
-            {language === "ar" ? `الملاحظات (${activeNotes.length})` : `Notes (${activeNotes.length})`}
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent className="p-3 max-h-64 overflow-y-auto">
-          {activeNotes.slice(0, 3).map(note => (
-            <div key={note.id} className="mb-2 p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
-              <h4 className={`font-semibold text-xs mb-1 ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                {note.title}
-              </h4>
-              {note.content && (
-                <p className={`text-xs text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  {note.content.length > 50 ? note.content.substring(0, 50) + "..." : note.content}
-                </p>
-              )}
-              <div className={`flex items-center gap-2 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <Checkbox
-                  checked={note.completed}
-                  onCheckedChange={() => toggleCompleted(note.id)}
-                />
-                <span className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  {language === "ar" ? "مكتملة" : "Complete"}
-                </span>
-              </div>
-            </div>
-          ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        {/* Add New Note Card */}
+        <Card className="shadow-lg border-dashed border-2 border-yellow-300 hover:border-yellow-400 transition-colors">
+          <CardHeader className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white pb-3">
+            <CardTitle className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              <Plus className="w-4 h-4" />
+              {language === "ar" ? "ملاحظة جديدة" : "New Note"}
+            </CardTitle>
+          </CardHeader>
           
-          {activeNotes.length > 3 && (
-            <p className={`text-xs text-gray-500 text-center mt-2 ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              {language === "ar" ? `و ${activeNotes.length - 3} ملاحظات أخرى...` : `and ${activeNotes.length - 3} more notes...`}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          <CardContent className="p-3">
+            <div className="space-y-2">
+              <Input
+                placeholder={language === "ar" ? "عنوان..." : "Title..."}
+                value={newNote.title}
+                onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
+                className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+              <Textarea
+                placeholder={language === "ar" ? "المحتوى..." : "Content..."}
+                value={newNote.content}
+                onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
+                rows={2}
+                className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+              <Button
+                onClick={addNote}
+                size="sm"
+                className={`w-full text-xs ${isRTL ? 'flex-row-reverse' : ''}`}
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                {language === "ar" ? "إضافة" : "Add"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Existing Notes */}
+        {activeNotes.slice(0, 5).map(note => (
+          <Card key={note.id} className="shadow-lg bg-yellow-50 border-yellow-200">
+            <CardHeader className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white pb-2">
+              <CardTitle className={`flex items-center justify-between text-xs ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                <span className="truncate">{note.title}</span>
+                <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Button
+                    onClick={() => setEditingNote(note.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-white hover:bg-yellow-700"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    onClick={() => deleteNote(note.id)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-white hover:bg-red-600"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="p-3">
+              {editingNote === note.id ? (
+                <EditNoteForm
+                  note={note}
+                  onSave={updateNote}
+                  onCancel={() => setEditingNote(null)}
+                  language={language}
+                  compact={true}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {note.content && (
+                    <p className={`text-xs text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      {note.content.length > 80 ? note.content.substring(0, 80) + "..." : note.content}
+                    </p>
+                  )}
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <Checkbox
+                      checked={note.completed}
+                      onCheckedChange={() => toggleCompleted(note.id)}
+                    />
+                    <span className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      {language === "ar" ? "مكتملة" : "Complete"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+
+        {/* Show more indicator if there are more notes */}
+        {activeNotes.length > 5 && (
+          <Card className="shadow-lg border-dashed border-2 border-gray-300">
+            <CardContent className="p-6 text-center flex items-center justify-center">
+              <div>
+                <StickyNote className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? `+${activeNotes.length - 5} ملاحظات` : `+${activeNotes.length - 5} more`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     );
   }
 
@@ -274,9 +348,10 @@ interface EditNoteFormProps {
   onSave: (id: string, title: string, content: string) => void;
   onCancel: () => void;
   language?: string;
+  compact?: boolean;
 }
 
-const EditNoteForm = ({ note, onSave, onCancel, language = "ar" }: EditNoteFormProps) => {
+const EditNoteForm = ({ note, onSave, onCancel, language = "ar", compact = false }: EditNoteFormProps) => {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const isRTL = language === "ar";
@@ -294,25 +369,36 @@ const EditNoteForm = ({ note, onSave, onCancel, language = "ar" }: EditNoteFormP
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className={isRTL ? 'text-right' : 'text-left'}
+        className={`${compact ? 'text-xs' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
         style={{ fontFamily: 'Tajawal, sans-serif' }}
       />
       <Textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        rows={3}
-        className={isRTL ? 'text-right' : 'text-left'}
+        rows={compact ? 2 : 3}
+        className={`${compact ? 'text-xs' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
         style={{ fontFamily: 'Tajawal, sans-serif' }}
       />
-      <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <Button onClick={handleSave} size="sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+      <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <Button 
+          onClick={handleSave} 
+          size={compact ? "sm" : "sm"} 
+          className={compact ? 'text-xs' : ''}
+          style={{ fontFamily: 'Tajawal, sans-serif' }}
+        >
           {language === "ar" ? "حفظ" : "Save"}
         </Button>
-        <Button onClick={onCancel} variant="outline" size="sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+        <Button 
+          onClick={onCancel} 
+          variant="outline" 
+          size={compact ? "sm" : "sm"}
+          className={compact ? 'text-xs' : ''}
+          style={{ fontFamily: 'Tajawal, sans-serif' }}
+        >
           {language === "ar" ? "إلغاء" : "Cancel"}
         </Button>
       </div>

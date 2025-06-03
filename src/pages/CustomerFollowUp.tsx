@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, MessageCircle } from "lucide-react";
+import { Users, Search, MessageCircle, Phone, Calendar, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -16,6 +16,7 @@ interface Customer {
   totalAmount: number;
   averagePrice: number;
   messageSent?: boolean;
+  lastMessageSent?: string;
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -27,7 +28,8 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-15",
     totalPurchases: 15,
     totalAmount: 4500,
-    averagePrice: 300
+    averagePrice: 300,
+    lastMessageSent: "2024-01-10"
   },
   {
     id: "2", 
@@ -45,7 +47,8 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-05",
     totalPurchases: 22,
     totalAmount: 6600,
-    averagePrice: 300
+    averagePrice: 300,
+    lastMessageSent: "2024-01-01"
   },
   {
     id: "4",
@@ -63,7 +66,8 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-08",
     totalPurchases: 18,
     totalAmount: 5400,
-    averagePrice: 300
+    averagePrice: 300,
+    lastMessageSent: "2024-01-05"
   },
   {
     id: "6",
@@ -90,10 +94,11 @@ const CustomerFollowUp = () => {
     const whatsappUrl = `https://wa.me/${customer.phone.replace(/^0/, '966')}?text=${message}`;
     window.open(whatsappUrl, '_blank');
     
-    // Move customer to bottom of list
+    // Update customer with message sent info and move to bottom
+    const today = new Date().toISOString().split('T')[0];
     setCustomers(prev => {
       const updatedCustomers = prev.map(c => 
-        c.id === customer.id ? { ...c, messageSent: true } : c
+        c.id === customer.id ? { ...c, messageSent: true, lastMessageSent: today } : c
       );
       const sentCustomer = updatedCustomers.find(c => c.id === customer.id);
       const otherCustomers = updatedCustomers.filter(c => c.id !== customer.id);
@@ -114,9 +119,19 @@ const CustomerFollowUp = () => {
     return diffDays;
   };
 
+  const getDaysSinceLastMessage = (lastMessage?: string) => {
+    if (!lastMessage) return null;
+    const today = new Date();
+    const messageDate = new Date(lastMessage);
+    const diffTime = Math.abs(today.getTime() - messageDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50" dir="rtl">
-      <div className="container mx-auto p-6">
+      <div className="container mx-auto p-6 max-w-7xl">
+        {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             متابعة العملاء
@@ -126,97 +141,151 @@ const CustomerFollowUp = () => {
           </p>
         </div>
 
-        <div className="space-y-6">
-          {/* Header */}
-          <Card className="shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
-              <CardTitle className="flex items-center gap-2 flex-row-reverse" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                <Users className="w-5 h-5" />
-                متابعة العملاء
-              </CardTitle>
-            </CardHeader>
+        {/* Search Header */}
+        <Card className="shadow-lg mb-8">
+          <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
+            <CardTitle className="flex items-center gap-2 flex-row-reverse" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              <Users className="w-5 h-5" />
+              متابعة العملاء ({filteredCustomers.length})
+            </CardTitle>
+          </CardHeader>
+          
+          <CardContent className="p-6">
+            <div className="relative">
+              <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="ابحث عن عميل بالاسم أو رقم الجوال..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10 text-right"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Customers Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCustomers.map(customer => {
+            const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
+            const daysSinceLastMessage = getDaysSinceLastMessage(customer.lastMessageSent);
+            const isInactive = daysSinceLastPurchase > 30;
             
-            <CardContent className="p-6">
-              <div className="relative">
-                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="ابحث عن عميل..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                />
-              </div>
+            return (
+              <Card 
+                key={customer.id} 
+                className={`shadow-lg transition-all duration-300 hover:shadow-xl ${
+                  customer.messageSent ? 'bg-gray-50 border-gray-300' : 
+                  isInactive ? 'border-orange-200 bg-orange-50' : 'border-blue-200 bg-white'
+                }`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start flex-row-reverse">
+                    <div className="text-right">
+                      <h3 className="text-lg font-bold text-gray-800 mb-1" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {customer.name}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-row-reverse text-sm text-gray-600">
+                        <Phone className="w-4 h-4" />
+                        <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.phone}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-1">
+                      {customer.messageSent && (
+                        <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                          تم الإرسال
+                        </Badge>
+                      )}
+                      {isInactive && !customer.messageSent && (
+                        <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
+                          غير نشط
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {/* Purchase Info */}
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 flex-row-reverse mb-2">
+                        <Calendar className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-semibold text-blue-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          آخر شراء
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {customer.lastPurchase}
+                      </p>
+                      <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        منذ {daysSinceLastPurchase} يوم
+                      </p>
+                    </div>
+
+                    {/* WhatsApp Message Info */}
+                    {customer.lastMessageSent && (
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <div className="flex items-center gap-2 flex-row-reverse mb-2">
+                          <MessageCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            آخر رسالة واتساب
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          {customer.lastMessageSent}
+                        </p>
+                        <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          منذ {daysSinceLastMessage} يوم
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="bg-gray-50 rounded p-2">
+                        <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>المشتريات</p>
+                        <p className="font-bold text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalPurchases}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded p-2">
+                        <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي</p>
+                        <p className="font-bold text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalAmount.toLocaleString()} ر.س</p>
+                      </div>
+                    </div>
+
+                    {/* WhatsApp Button */}
+                    <Button
+                      onClick={() => sendWhatsAppMessage(customer)}
+                      className={`w-full flex items-center gap-2 flex-row-reverse ${
+                        customer.messageSent 
+                          ? 'bg-gray-400 hover:bg-gray-500' 
+                          : 'bg-green-600 hover:bg-green-700'
+                      } text-white`}
+                      style={{ fontFamily: 'Tajawal, sans-serif' }}
+                      disabled={customer.messageSent}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      {customer.messageSent ? "تم الإرسال" : "إرسال واتساب"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+        
+        {/* Empty State */}
+        {filteredCustomers.length === 0 && (
+          <Card className="shadow-md mt-8">
+            <CardContent className="p-12 text-center">
+              <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500 text-lg" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                لا توجد عملاء مطابقين للبحث
+              </p>
             </CardContent>
           </Card>
-
-          {/* Customers List */}
-          <div className="grid gap-4">
-            {filteredCustomers.map(customer => {
-              const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
-              const isInactive = daysSinceLastPurchase > 30;
-              
-              return (
-                <Card key={customer.id} className={`shadow-md transition-all duration-300 ${customer.messageSent ? 'bg-gray-50 border-gray-300' : isInactive ? 'border-orange-200' : ''}`}>
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-center">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2 flex-row-reverse">
-                          <h3 className="text-lg font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {customer.name}
-                          </h3>
-                          {customer.messageSent && (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              تم الإرسال
-                            </Badge>
-                          )}
-                          {isInactive && !customer.messageSent && (
-                            <Badge variant="outline" className="text-orange-600 border-orange-600">
-                              غير نشط
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                          <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            📱 {customer.phone}
-                          </p>
-                          <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            📅 آخر شراء: {customer.lastPurchase}
-                          </p>
-                          <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            ⏰ منذ {daysSinceLastPurchase} يوم
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <Button
-                        onClick={() => sendWhatsAppMessage(customer)}
-                        className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                        style={{ fontFamily: 'Tajawal, sans-serif' }}
-                        disabled={customer.messageSent}
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        {customer.messageSent ? "تم الإرسال" : "إرسال واتساب"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-          
-          {filteredCustomers.length === 0 && (
-            <Card className="shadow-md">
-              <CardContent className="p-12 text-center">
-                <Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  لا توجد عملاء مطابقين للبحث
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
