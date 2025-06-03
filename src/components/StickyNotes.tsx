@@ -4,8 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { StickyNote, Plus, Trash2, Edit3, Palette } from "lucide-react";
+import { StickyNote, Plus, Trash2, Edit3, Palette, CheckSquare, Square } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+
+interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
 
 interface Note {
   id: string;
@@ -14,6 +21,8 @@ interface Note {
   completed: boolean;
   createdAt: string;
   color: string;
+  type: 'note' | 'checklist';
+  checklistItems?: ChecklistItem[];
 }
 
 interface StickyNotesProps {
@@ -38,10 +47,12 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
       content: "الاتصال بأحمد لتذكيره بموعد التسليم",
       completed: false,
       createdAt: new Date().toISOString(),
-      color: "yellow"
+      color: "yellow",
+      type: "note"
     }
   ]);
-  const [newNote, setNewNote] = useState({ title: "", content: "", color: "yellow" });
+  const [newNote, setNewNote] = useState({ title: "", content: "", color: "yellow", type: "note" as 'note' | 'checklist' });
+  const [newChecklistItem, setNewChecklistItem] = useState("");
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -67,11 +78,14 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
       content: newNote.content,
       completed: false,
       createdAt: new Date().toISOString(),
-      color: newNote.color
+      color: newNote.color,
+      type: newNote.type,
+      checklistItems: newNote.type === 'checklist' ? [] : undefined
     };
 
     setNotes(prev => [note, ...prev]);
-    setNewNote({ title: "", content: "", color: "yellow" });
+    setNewNote({ title: "", content: "", color: "yellow", type: "note" });
+    setNewChecklistItem("");
     
     toast({
       title: language === "ar" ? "تم إضافة الملاحظة" : "Note Added",
@@ -93,6 +107,40 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
     ));
   };
 
+  const addChecklistItem = (noteId: string, text: string) => {
+    if (!text.trim()) return;
+    
+    setNotes(prev => prev.map(note => 
+      note.id === noteId ? {
+        ...note,
+        checklistItems: [
+          ...(note.checklistItems || []),
+          { id: Date.now().toString(), text, completed: false }
+        ]
+      } : note
+    ));
+  };
+
+  const toggleChecklistItem = (noteId: string, itemId: string) => {
+    setNotes(prev => prev.map(note => 
+      note.id === noteId ? {
+        ...note,
+        checklistItems: note.checklistItems?.map(item =>
+          item.id === itemId ? { ...item, completed: !item.completed } : item
+        )
+      } : note
+    ));
+  };
+
+  const deleteChecklistItem = (noteId: string, itemId: string) => {
+    setNotes(prev => prev.map(note => 
+      note.id === noteId ? {
+        ...note,
+        checklistItems: note.checklistItems?.filter(item => item.id !== itemId)
+      } : note
+    ));
+  };
+
   const updateNote = (id: string, title: string, content: string, color: string) => {
     setNotes(prev => prev.map(note => 
       note.id === id ? { ...note, title, content, color } : note
@@ -106,7 +154,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
 
   if (compact) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {/* Add New Note Card */}
         <Card className="shadow-lg border-dashed border-2 border-yellow-300 hover:border-yellow-400 transition-colors">
           <CardHeader className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white pb-3">
@@ -118,6 +166,30 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
           
           <CardContent className="p-3">
             <div className="space-y-2">
+              {/* Note Type Selection */}
+              <div className="flex gap-1">
+                <Button
+                  onClick={() => setNewNote(prev => ({ ...prev, type: 'note' }))}
+                  variant={newNote.type === 'note' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1 text-xs"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                >
+                  <StickyNote className="w-3 h-3 mr-1" />
+                  ملاحظة
+                </Button>
+                <Button
+                  onClick={() => setNewNote(prev => ({ ...prev, type: 'checklist' }))}
+                  variant={newNote.type === 'checklist' ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1 text-xs"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                >
+                  <CheckSquare className="w-3 h-3 mr-1" />
+                  قائمة
+                </Button>
+              </div>
+
               <Input
                 placeholder={language === "ar" ? "عنوان..." : "Title..."}
                 value={newNote.title}
@@ -125,14 +197,17 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                 className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
               />
-              <Textarea
-                placeholder={language === "ar" ? "المحتوى..." : "Content..."}
-                value={newNote.content}
-                onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
-                rows={2}
-                className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}
-                style={{ fontFamily: 'Tajawal, sans-serif' }}
-              />
+              
+              {newNote.type === 'note' && (
+                <Textarea
+                  placeholder={language === "ar" ? "المحتوى..." : "Content..."}
+                  value={newNote.content}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
+                  rows={2}
+                  className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                />
+              )}
               
               {/* Color Picker */}
               <div className="flex flex-wrap gap-1">
@@ -162,13 +237,16 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
         </Card>
 
         {/* Existing Notes */}
-        {activeNotes.slice(0, 4).map(note => {
+        {activeNotes.slice(0, 5).map(note => {
           const colorClasses = getColorClasses(note.color);
           return (
             <Card key={note.id} className={`shadow-lg ${colorClasses.bg} ${colorClasses.border}`}>
               <CardHeader className={`bg-gradient-to-r ${colorClasses.header} text-white pb-2`}>
                 <CardTitle className={`flex items-center justify-between text-xs ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  <span className="truncate">{note.title}</span>
+                  <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    {note.type === 'checklist' ? <CheckSquare className="w-3 h-3" /> : <StickyNote className="w-3 h-3" />}
+                    <span className="truncate">{note.title}</span>
+                  </div>
                   <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <Button
                       onClick={() => setEditingNote(note.id)}
@@ -201,11 +279,34 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                   />
                 ) : (
                   <div className="space-y-2">
-                    {note.content && (
+                    {note.type === 'note' && note.content && (
                       <p className={`text-xs text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
                         {note.content.length > 60 ? note.content.substring(0, 60) + "..." : note.content}
                       </p>
                     )}
+                    
+                    {note.type === 'checklist' && note.checklistItems && (
+                      <div className="space-y-1">
+                        {note.checklistItems.slice(0, 3).map(item => (
+                          <div key={item.id} className={`flex items-center gap-1 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Checkbox
+                              checked={item.completed}
+                              onCheckedChange={() => toggleChecklistItem(note.id, item.id)}
+                              className="h-3 w-3"
+                            />
+                            <span className={`${item.completed ? 'line-through text-gray-500' : ''} truncate`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                              {item.text}
+                            </span>
+                          </div>
+                        ))}
+                        {note.checklistItems.length > 3 && (
+                          <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            +{note.checklistItems.length - 3} أكثر
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <Checkbox
                         checked={note.completed}
@@ -223,13 +324,13 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
         })}
 
         {/* Show more indicator if there are more notes */}
-        {activeNotes.length > 4 && (
+        {activeNotes.length > 5 && (
           <Card className="shadow-lg border-dashed border-2 border-gray-300">
             <CardContent className="p-6 text-center flex items-center justify-center">
               <div>
                 <StickyNote className="w-8 h-8 mx-auto text-gray-400 mb-2" />
                 <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  {language === "ar" ? `+${activeNotes.length - 4} ملاحظات` : `+${activeNotes.length - 4} more`}
+                  {language === "ar" ? `+${activeNotes.length - 5} ملاحظات` : `+${activeNotes.length - 5} more`}
                 </p>
               </div>
             </CardContent>
@@ -252,6 +353,30 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
         <CardContent className="p-4 md:p-6">
           {/* Add New Note */}
           <div className="space-y-4 mb-6 p-4 bg-yellow-50 rounded-lg border">
+            {/* Note Type Selection */}
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setNewNote(prev => ({ ...prev, type: 'note' }))}
+                variant={newNote.type === 'note' ? 'default' : 'outline'}
+                size="sm"
+                className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              >
+                <StickyNote className="w-4 h-4" />
+                ملاحظة عادية
+              </Button>
+              <Button
+                onClick={() => setNewNote(prev => ({ ...prev, type: 'checklist' }))}
+                variant={newNote.type === 'checklist' ? 'default' : 'outline'}
+                size="sm"
+                className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              >
+                <CheckSquare className="w-4 h-4" />
+                قائمة مهام
+              </Button>
+            </div>
+
             <Input
               placeholder={language === "ar" ? "عنوان الملاحظة..." : "Note title..."}
               value={newNote.title}
@@ -259,14 +384,17 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
               className={isRTL ? 'text-right' : 'text-left'}
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             />
-            <Textarea
-              placeholder={language === "ar" ? "محتوى الملاحظة..." : "Note content..."}
-              value={newNote.content}
-              onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
-              rows={3}
-              className={isRTL ? 'text-right' : 'text-left'}
-              style={{ fontFamily: 'Tajawal, sans-serif' }}
-            />
+            
+            {newNote.type === 'note' && (
+              <Textarea
+                placeholder={language === "ar" ? "محتوى الملاحظة..." : "Note content..."}
+                value={newNote.content}
+                onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
+                rows={3}
+                className={isRTL ? 'text-right' : 'text-left'}
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            )}
             
             {/* Color Picker */}
             <div className="flex flex-wrap gap-2">
@@ -331,10 +459,13 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                   ) : (
                     <div>
                       <div className={`flex items-start justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <h4 className={`font-semibold text-sm ${note.completed ? 'line-through text-gray-500' : ''} ${isRTL ? 'text-right' : 'text-left'}`} 
-                            style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          {note.title}
-                        </h4>
+                        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          {note.type === 'checklist' ? <CheckSquare className="w-4 h-4" /> : <StickyNote className="w-4 h-4" />}
+                          <h4 className={`font-semibold text-sm ${note.completed ? 'line-through text-gray-500' : ''} ${isRTL ? 'text-right' : 'text-left'}`} 
+                              style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {note.title}
+                          </h4>
+                        </div>
                         <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <Button
                             onClick={() => setEditingNote(note.id)}
@@ -355,11 +486,61 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                         </div>
                       </div>
                       
-                      {note.content && (
+                      {note.type === 'note' && note.content && (
                         <p className={`text-gray-600 mb-3 text-xs ${note.completed ? 'line-through' : ''} ${isRTL ? 'text-right' : 'text-left'}`} 
                            style={{ fontFamily: 'Tajawal, sans-serif' }}>
                           {note.content}
                         </p>
+                      )}
+
+                      {note.type === 'checklist' && note.checklistItems && (
+                        <div className="mb-3 space-y-1">
+                          {note.checklistItems.map(item => (
+                            <div key={item.id} className={`flex items-center gap-2 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <Checkbox
+                                checked={item.completed}
+                                onCheckedChange={() => toggleChecklistItem(note.id, item.id)}
+                                className="h-3 w-3"
+                              />
+                              <span className={`${item.completed ? 'line-through text-gray-500' : ''} flex-1`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                                {item.text}
+                              </span>
+                              <Button
+                                onClick={() => deleteChecklistItem(note.id, item.id)}
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                          <div className={`flex gap-1 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Input
+                              placeholder="إضافة عنصر..."
+                              value={newChecklistItem}
+                              onChange={(e) => setNewChecklistItem(e.target.value)}
+                              className="flex-1 h-6 text-xs"
+                              style={{ fontFamily: 'Tajawal, sans-serif' }}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  addChecklistItem(note.id, newChecklistItem);
+                                  setNewChecklistItem("");
+                                }
+                              }}
+                            />
+                            <Button
+                              onClick={() => {
+                                addChecklistItem(note.id, newChecklistItem);
+                                setNewChecklistItem("");
+                              }}
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
                       )}
                       
                       <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -434,13 +615,15 @@ const EditNoteForm = ({ note, onSave, onCancel, language = "ar", compact = false
         className={`${compact ? 'text-xs' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
         style={{ fontFamily: 'Tajawal, sans-serif' }}
       />
-      <Textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={compact ? 2 : 3}
-        className={`${compact ? 'text-xs' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
-        style={{ fontFamily: 'Tajawal, sans-serif' }}
-      />
+      {note.type === 'note' && (
+        <Textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          rows={compact ? 2 : 3}
+          className={`${compact ? 'text-xs' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
+          style={{ fontFamily: 'Tajawal, sans-serif' }}
+        />
+      )}
       
       {/* Color Picker for Edit */}
       <div className="flex flex-wrap gap-1">

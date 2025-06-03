@@ -1,10 +1,13 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Search, Calendar, TrendingUp, User, Package, DollarSign } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Users, Search, Calendar, TrendingUp, User, Package, DollarSign, Edit3, Save, X, Ban } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface Purchase {
   id: string;
@@ -26,6 +29,9 @@ interface Customer {
   totalAmount: number;
   averagePrice: number;
   purchases: Purchase[];
+  notes?: string;
+  isBlocked?: boolean;
+  blockReason?: string;
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -38,6 +44,7 @@ const mockCustomers: Customer[] = [
     totalPurchases: 15,
     totalAmount: 4500,
     averagePrice: 300,
+    notes: "عميل مميز، يشتري بانتظام كل شهر",
     purchases: [
       {
         id: "p1",
@@ -69,6 +76,7 @@ const mockCustomers: Customer[] = [
     totalPurchases: 8,
     totalAmount: 2400,
     averagePrice: 300,
+    notes: "تفضل البطاريات اليابانية",
     purchases: [
       {
         id: "p3",
@@ -90,13 +98,17 @@ const mockCustomers: Customer[] = [
     totalPurchases: 22,
     totalAmount: 6600,
     averagePrice: 300,
+    isBlocked: true,
+    blockReason: "مشاكل في الدفع",
     purchases: []
   }
 ];
 
 export const CustomerManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [customers] = useState<Customer[]>(mockCustomers);
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
+  const [customerNotes, setCustomerNotes] = useState("");
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,6 +121,33 @@ export const CustomerManagement = () => {
     const diffTime = Math.abs(today.getTime() - purchaseDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const updateCustomerNotes = (customerId: string, notes: string) => {
+    setCustomers(prev => prev.map(c => 
+      c.id === customerId ? { ...c, notes } : c
+    ));
+    setEditingCustomer(null);
+    toast({
+      title: "تم حفظ الملاحظة",
+      description: "تم حفظ ملاحظة العميل بنجاح",
+    });
+  };
+
+  const toggleCustomerBlock = (customerId: string, blockReason?: string) => {
+    setCustomers(prev => prev.map(c => 
+      c.id === customerId ? { 
+        ...c, 
+        isBlocked: !c.isBlocked, 
+        blockReason: !c.isBlocked ? blockReason : undefined 
+      } : c
+    ));
+    
+    const customer = customers.find(c => c.id === customerId);
+    toast({
+      title: customer?.isBlocked ? "تم إلغاء حظر العميل" : "تم حظر العميل",
+      description: customer?.isBlocked ? "تم إلغاء حظر العميل بنجاح" : "تم حظر العميل بنجاح",
+    });
   };
 
   const CustomerDetailsDialog = ({ customer }: { customer: Customer }) => (
@@ -188,6 +227,64 @@ export const CustomerManagement = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Customer Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 flex-row-reverse" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                <User className="w-5 h-5 text-yellow-600" />
+                ملاحظات العميل
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {editingCustomer === customer.id ? (
+                <div className="space-y-4">
+                  <Textarea
+                    value={customerNotes}
+                    onChange={(e) => setCustomerNotes(e.target.value)}
+                    placeholder="أضف ملاحظة عن العميل..."
+                    rows={4}
+                    className="text-right"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  />
+                  <div className="flex gap-2 flex-row-reverse">
+                    <Button
+                      onClick={() => updateCustomerNotes(customer.id, customerNotes)}
+                      style={{ fontFamily: 'Tajawal, sans-serif' }}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      حفظ الملاحظة
+                    </Button>
+                    <Button
+                      onClick={() => setEditingCustomer(null)}
+                      variant="outline"
+                      style={{ fontFamily: 'Tajawal, sans-serif' }}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      إلغاء
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start justify-between">
+                  <p className="text-gray-700 text-right flex-1" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {customer.notes || "لا توجد ملاحظات عن هذا العميل"}
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setEditingCustomer(customer.id);
+                      setCustomerNotes(customer.notes || "");
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="mr-4"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Purchase History */}
           <Card>
@@ -314,19 +411,18 @@ export const CustomerManagement = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredCustomers.map(customer => {
           const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
-          const isInactive = daysSinceLastPurchase > 30;
           
           return (
-            <Card key={customer.id} className={`shadow-md hover:shadow-lg transition-shadow ${isInactive ? 'border-orange-200' : ''}`}>
+            <Card key={customer.id} className={`shadow-md hover:shadow-lg transition-shadow ${customer.isBlocked ? 'border-red-200 bg-red-50' : ''}`}>
               <CardContent className="p-3 sm:p-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 mb-2 flex-row-reverse">
                     <h3 className="text-sm sm:text-base font-semibold truncate" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {customer.name}
                     </h3>
-                    {isInactive && (
-                      <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
-                        غير نشط
+                    {customer.isBlocked && (
+                      <Badge variant="destructive" className="text-xs">
+                        محظور
                       </Badge>
                     )}
                   </div>
@@ -340,6 +436,24 @@ export const CustomerManagement = () => {
                       منذ {daysSinceLastPurchase} يوم
                     </p>
                   </div>
+
+                  {/* Customer Notes Preview */}
+                  {customer.notes && (
+                    <div className="bg-yellow-50 rounded p-2">
+                      <p className="text-xs text-gray-600 text-right truncate" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        📝 {customer.notes}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Block Reason */}
+                  {customer.isBlocked && customer.blockReason && (
+                    <div className="bg-red-100 rounded p-2">
+                      <p className="text-xs text-red-600 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        ⚠️ {customer.blockReason}
+                      </p>
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="bg-gray-50 rounded p-2">
@@ -356,7 +470,55 @@ export const CustomerManagement = () => {
                     </div>
                   </div>
                   
-                  <CustomerDetailsDialog customer={customer} />
+                  <div className="space-y-2">
+                    <CustomerDetailsDialog customer={customer} />
+                    
+                    {/* Block/Unblock Button */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant={customer.isBlocked ? "outline" : "destructive"}
+                          size="sm"
+                          className="w-full flex items-center gap-2 flex-row-reverse text-xs"
+                          style={{ fontFamily: 'Tajawal, sans-serif' }}
+                        >
+                          <Ban className="w-3 h-3" />
+                          {customer.isBlocked ? "إلغاء الحظر" : "حظر العميل"}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent dir="rtl">
+                        <DialogHeader>
+                          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {customer.isBlocked ? "إلغاء حظر العميل" : "حظر العميل"}
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          {!customer.isBlocked && (
+                            <div>
+                              <label className="text-sm font-medium" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                                سبب الحظر
+                              </label>
+                              <Textarea
+                                placeholder="اكتب سبب حظر العميل..."
+                                className="text-right"
+                                style={{ fontFamily: 'Tajawal, sans-serif' }}
+                                onChange={(e) => setCustomerNotes(e.target.value)}
+                              />
+                            </div>
+                          )}
+                          <div className="flex gap-2 flex-row-reverse">
+                            <Button
+                              onClick={() => toggleCustomerBlock(customer.id, customer.isBlocked ? undefined : customerNotes)}
+                              variant={customer.isBlocked ? "outline" : "destructive"}
+                              style={{ fontFamily: 'Tajawal, sans-serif' }}
+                            >
+                              {customer.isBlocked ? "إلغاء الحظر" : "حظر العميل"}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, MessageCircle, Phone, Calendar, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Users, Search, MessageCircle, Phone, Calendar, Filter, User, Package, DollarSign, Edit3, Save, X, Ban } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Customer {
@@ -17,6 +20,9 @@ interface Customer {
   averagePrice: number;
   messageSent?: boolean;
   lastMessageSent?: string;
+  notes?: string;
+  isBlocked?: boolean;
+  blockReason?: string;
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -29,7 +35,8 @@ const mockCustomers: Customer[] = [
     totalPurchases: 15,
     totalAmount: 4500,
     averagePrice: 300,
-    lastMessageSent: "2024-01-10"
+    lastMessageSent: "2024-01-10",
+    notes: "عميل مميز، يشتري بانتظام كل شهر"
   },
   {
     id: "2", 
@@ -38,7 +45,8 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-10",
     totalPurchases: 8,
     totalAmount: 2400,
-    averagePrice: 300
+    averagePrice: 300,
+    notes: "تفضل البطاريات اليابانية"
   },
   {
     id: "3",
@@ -48,7 +56,9 @@ const mockCustomers: Customer[] = [
     totalPurchases: 22,
     totalAmount: 6600,
     averagePrice: 300,
-    lastMessageSent: "2024-01-01"
+    lastMessageSent: "2024-01-01",
+    isBlocked: true,
+    blockReason: "مشاكل في الدفع"
   },
   {
     id: "4",
@@ -83,11 +93,30 @@ const mockCustomers: Customer[] = [
 const CustomerFollowUp = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [lastBuyFilter, setLastBuyFilter] = useState("all");
+  const [lastMessageFilter, setLastMessageFilter] = useState("all");
+  const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
+  const [customerNotes, setCustomerNotes] = useState("");
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
-  );
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         customer.phone.includes(searchTerm);
+    
+    const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
+    const daysSinceLastMessage = customer.lastMessageSent ? getDaysSinceLastMessage(customer.lastMessageSent) : null;
+    
+    let matchesLastBuy = true;
+    if (lastBuyFilter === "recent") matchesLastBuy = daysSinceLastPurchase <= 7;
+    else if (lastBuyFilter === "week") matchesLastBuy = daysSinceLastPurchase > 7 && daysSinceLastPurchase <= 30;
+    else if (lastBuyFilter === "month") matchesLastBuy = daysSinceLastPurchase > 30;
+    
+    let matchesLastMessage = true;
+    if (lastMessageFilter === "sent") matchesLastMessage = !!customer.lastMessageSent;
+    else if (lastMessageFilter === "not_sent") matchesLastMessage = !customer.lastMessageSent;
+    else if (lastMessageFilter === "recent_sent") matchesLastMessage = daysSinceLastMessage !== null && daysSinceLastMessage <= 7;
+    
+    return matchesSearch && matchesLastBuy && matchesLastMessage;
+  });
 
   const sendWhatsAppMessage = (customer: Customer) => {
     const message = encodeURIComponent("مرحباً، طال انتظارنا لك في المحل. نتطلع لرؤيتك قريباً!");
@@ -128,6 +157,33 @@ const CustomerFollowUp = () => {
     return diffDays;
   };
 
+  const updateCustomerNotes = (customerId: string, notes: string) => {
+    setCustomers(prev => prev.map(c => 
+      c.id === customerId ? { ...c, notes } : c
+    ));
+    setEditingCustomer(null);
+    toast({
+      title: "تم حفظ الملاحظة",
+      description: "تم حفظ ملاحظة العميل بنجاح",
+    });
+  };
+
+  const toggleCustomerBlock = (customerId: string, blockReason?: string) => {
+    setCustomers(prev => prev.map(c => 
+      c.id === customerId ? { 
+        ...c, 
+        isBlocked: !c.isBlocked, 
+        blockReason: !c.isBlocked ? blockReason : undefined 
+      } : c
+    ));
+    
+    const customer = customers.find(c => c.id === customerId);
+    toast({
+      title: customer?.isBlocked ? "تم إلغاء حظر العميل" : "تم حظر العميل",
+      description: customer?.isBlocked ? "تم إلغاء حظر العميل بنجاح" : "تم حظر العميل بنجاح",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50" dir="rtl">
       <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
@@ -141,7 +197,7 @@ const CustomerFollowUp = () => {
           </p>
         </div>
 
-        {/* Search Header */}
+        {/* Search and Filters */}
         <Card className="shadow-lg mb-6 sm:mb-8">
           <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 sm:p-6">
             <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
@@ -150,7 +206,8 @@ const CustomerFollowUp = () => {
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            {/* Search */}
             <div className="relative">
               <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
               <Input
@@ -161,22 +218,74 @@ const CustomerFollowUp = () => {
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
               />
             </div>
+
+            {/* Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  فلترة حسب آخر شراء
+                </label>
+                <Select value={lastBuyFilter} onValueChange={setLastBuyFilter}>
+                  <SelectTrigger className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع العملاء</SelectItem>
+                    <SelectItem value="recent">آخر أسبوع</SelectItem>
+                    <SelectItem value="week">آخر شهر</SelectItem>
+                    <SelectItem value="month">أكثر من شهر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  فلترة حسب رسائل الواتساب
+                </label>
+                <Select value={lastMessageFilter} onValueChange={setLastMessageFilter}>
+                  <SelectTrigger className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">جميع العملاء</SelectItem>
+                    <SelectItem value="sent">تم إرسال رسالة</SelectItem>
+                    <SelectItem value="not_sent">لم يتم الإرسال</SelectItem>
+                    <SelectItem value="recent_sent">تم الإرسال مؤخراً</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-end">
+                <Button
+                  onClick={() => {
+                    setLastBuyFilter("all");
+                    setLastMessageFilter("all");
+                    setSearchTerm("");
+                  }}
+                  variant="outline"
+                  className="w-full flex items-center gap-2 flex-row-reverse"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                >
+                  <Filter className="w-4 h-4" />
+                  إعادة تعيين الفلاتر
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Customers Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
           {filteredCustomers.map(customer => {
             const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
             const daysSinceLastMessage = getDaysSinceLastMessage(customer.lastMessageSent);
-            const isInactive = daysSinceLastPurchase > 30;
             
             return (
               <Card 
                 key={customer.id} 
                 className={`shadow-lg transition-all duration-300 hover:shadow-xl ${
-                  customer.messageSent ? 'bg-gray-50 border-gray-300' : 
-                  isInactive ? 'border-orange-200 bg-orange-50' : 'border-blue-200 bg-white'
+                  customer.isBlocked ? 'bg-red-50 border-red-300' :
+                  customer.messageSent ? 'bg-gray-50 border-gray-300' : 'bg-white border-blue-200'
                 }`}
               >
                 <CardHeader className="pb-3 p-3 sm:p-4">
@@ -192,14 +301,14 @@ const CustomerFollowUp = () => {
                     </div>
                     
                     <div className="flex flex-col gap-1">
-                      {customer.messageSent && (
-                        <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
-                          تم الإرسال
+                      {customer.isBlocked && (
+                        <Badge variant="destructive" className="text-xs">
+                          محظور
                         </Badge>
                       )}
-                      {isInactive && !customer.messageSent && (
-                        <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
-                          غير نشط
+                      {customer.messageSent && !customer.isBlocked && (
+                        <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
+                          تم الإرسال
                         </Badge>
                       )}
                     </div>
@@ -225,49 +334,181 @@ const CustomerFollowUp = () => {
                     </div>
 
                     {/* WhatsApp Message Info */}
-                    {customer.lastMessageSent && (
-                      <div className="bg-green-50 rounded-lg p-2 sm:p-3">
-                        <div className="flex items-center gap-2 flex-row-reverse mb-2">
-                          <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                          <span className="text-xs sm:text-sm font-semibold text-green-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            آخر رسالة واتساب
-                          </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          {customer.lastMessageSent}
-                        </p>
-                        <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          منذ {daysSinceLastMessage} يوم
-                        </p>
+                    <div className="bg-green-50 rounded-lg p-2 sm:p-3">
+                      <div className="flex items-center gap-2 flex-row-reverse mb-2">
+                        <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                        <span className="text-xs sm:text-sm font-semibold text-green-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          آخر رسالة واتساب
+                        </span>
                       </div>
-                    )}
+                      {customer.lastMessageSent ? (
+                        <>
+                          <p className="text-xs sm:text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {customer.lastMessageSent}
+                          </p>
+                          <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            منذ {daysSinceLastMessage} يوم
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          لم يتم إرسال رسالة
+                        </p>
+                      )}
+                    </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-2 text-center">
+                    {/* Purchase Stats */}
+                    <div className="grid grid-cols-3 gap-2 text-center">
                       <div className="bg-gray-50 rounded p-2">
-                        <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>المشتريات</p>
+                        <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية</p>
                         <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalPurchases}</p>
                       </div>
                       <div className="bg-gray-50 rounded p-2">
                         <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي</p>
-                        <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalAmount.toLocaleString()} ر.س</p>
+                        <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalAmount.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded p-2">
+                        <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>المتوسط</p>
+                        <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.averagePrice}</p>
                       </div>
                     </div>
 
-                    {/* WhatsApp Button */}
-                    <Button
-                      onClick={() => sendWhatsAppMessage(customer)}
-                      className={`w-full flex items-center gap-2 flex-row-reverse text-xs sm:text-sm ${
-                        customer.messageSent 
-                          ? 'bg-gray-400 hover:bg-gray-500' 
-                          : 'bg-green-600 hover:bg-green-700'
-                      } text-white`}
-                      style={{ fontFamily: 'Tajawal, sans-serif' }}
-                      disabled={customer.messageSent}
-                    >
-                      <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                      {customer.messageSent ? "تم الإرسال" : "إرسال واتساب"}
-                    </Button>
+                    {/* Customer Notes */}
+                    <div className="bg-yellow-50 rounded-lg p-2 sm:p-3">
+                      <div className="flex items-center justify-between flex-row-reverse mb-2">
+                        <div className="flex items-center gap-2 flex-row-reverse">
+                          <User className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" />
+                          <span className="text-xs sm:text-sm font-semibold text-yellow-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            ملاحظات العميل
+                          </span>
+                        </div>
+                        <Button
+                          onClick={() => {
+                            setEditingCustomer(customer.id);
+                            setCustomerNotes(customer.notes || "");
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      {editingCustomer === customer.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={customerNotes}
+                            onChange={(e) => setCustomerNotes(e.target.value)}
+                            placeholder="أضف ملاحظة عن العميل..."
+                            rows={3}
+                            className="text-xs text-right"
+                            style={{ fontFamily: 'Tajawal, sans-serif' }}
+                          />
+                          <div className="flex gap-1 flex-row-reverse">
+                            <Button
+                              onClick={() => updateCustomerNotes(customer.id, customerNotes)}
+                              size="sm"
+                              className="text-xs"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              حفظ
+                            </Button>
+                            <Button
+                              onClick={() => setEditingCustomer(null)}
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              إلغاء
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          {customer.notes || "لا توجد ملاحظات"}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Block Reason */}
+                    {customer.isBlocked && customer.blockReason && (
+                      <div className="bg-red-50 rounded-lg p-2 sm:p-3">
+                        <div className="flex items-center gap-2 flex-row-reverse mb-2">
+                          <Ban className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
+                          <span className="text-xs sm:text-sm font-semibold text-red-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            سبب الحظر
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          {customer.blockReason}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2">
+                      {/* WhatsApp Button */}
+                      <Button
+                        onClick={() => sendWhatsAppMessage(customer)}
+                        className={`w-full flex items-center gap-2 flex-row-reverse text-xs sm:text-sm ${
+                          customer.messageSent || customer.isBlocked
+                            ? 'bg-gray-400 hover:bg-gray-500' 
+                            : 'bg-green-600 hover:bg-green-700'
+                        } text-white`}
+                        style={{ fontFamily: 'Tajawal, sans-serif' }}
+                        disabled={customer.messageSent || customer.isBlocked}
+                      >
+                        <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                        {customer.isBlocked ? "محظور" : customer.messageSent ? "تم الإرسال" : "إرسال واتساب"}
+                      </Button>
+
+                      {/* Block/Unblock Button */}
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant={customer.isBlocked ? "outline" : "destructive"}
+                            size="sm"
+                            className="w-full flex items-center gap-2 flex-row-reverse text-xs"
+                            style={{ fontFamily: 'Tajawal, sans-serif' }}
+                          >
+                            <Ban className="w-3 h-3" />
+                            {customer.isBlocked ? "إلغاء الحظر" : "حظر العميل"}
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent dir="rtl">
+                          <DialogHeader>
+                            <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                              {customer.isBlocked ? "إلغاء حظر العميل" : "حظر العميل"}
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            {!customer.isBlocked && (
+                              <div>
+                                <label className="text-sm font-medium" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                                  سبب الحظر
+                                </label>
+                                <Textarea
+                                  placeholder="اكتب سبب حظر العميل..."
+                                  className="text-right"
+                                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                                  onChange={(e) => setCustomerNotes(e.target.value)}
+                                />
+                              </div>
+                            )}
+                            <div className="flex gap-2 flex-row-reverse">
+                              <Button
+                                onClick={() => toggleCustomerBlock(customer.id, customer.isBlocked ? undefined : customerNotes)}
+                                variant={customer.isBlocked ? "outline" : "destructive"}
+                                style={{ fontFamily: 'Tajawal, sans-serif' }}
+                              >
+                                {customer.isBlocked ? "إلغاء الحظر" : "حظر العميل"}
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -281,7 +522,7 @@ const CustomerFollowUp = () => {
             <CardContent className="p-8 sm:p-12 text-center">
               <Users className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-500 text-sm sm:text-lg" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                لا توجد عملاء مطابقين للبحث
+                لا توجد عملاء مطابقين للبحث أو الفلاتر المحددة
               </p>
             </CardContent>
           </Card>
