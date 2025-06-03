@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +21,7 @@ interface Purchase {
 
 interface Customer {
   id: string;
+  customerCode: string;
   name: string;
   phone: string;
   lastPurchase: string;
@@ -38,6 +38,7 @@ interface Customer {
 const mockCustomers: Customer[] = [
   {
     id: "1",
+    customerCode: "C001",
     name: "أحمد محمد",
     phone: "0501234567",
     lastPurchase: "2024-01-15",
@@ -70,6 +71,7 @@ const mockCustomers: Customer[] = [
   },
   {
     id: "2", 
+    customerCode: "C002",
     name: "فاطمة علي",
     phone: "0507654321",
     lastPurchase: "2024-01-10",
@@ -92,6 +94,7 @@ const mockCustomers: Customer[] = [
   },
   {
     id: "3",
+    customerCode: "C003",
     name: "خالد أحمد", 
     phone: "0501111111",
     lastPurchase: "2024-01-05",
@@ -112,7 +115,8 @@ export const CustomerManagement = () => {
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm)
+    customer.phone.includes(searchTerm) ||
+    customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getDaysSinceLastPurchase = (lastPurchase: string) => {
@@ -416,15 +420,22 @@ export const CustomerManagement = () => {
             <Card key={customer.id} className={`shadow-md hover:shadow-lg transition-shadow ${customer.isBlocked ? 'border-red-200 bg-red-50' : ''}`}>
               <CardContent className="p-3 sm:p-4">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 mb-2 flex-row-reverse">
-                    <h3 className="text-sm sm:text-base font-semibold truncate" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      {customer.name}
-                    </h3>
-                    {customer.isBlocked && (
-                      <Badge variant="destructive" className="text-xs">
-                        محظور
-                      </Badge>
-                    )}
+                  <div className="flex items-center gap-2 mb-2 flex-row-reverse">
+                    <div className="flex-1">
+                      <h3 className="text-sm sm:text-base font-semibold truncate" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {customer.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1 flex-row-reverse">
+                        <Badge variant="secondary" className="text-xs">
+                          {customer.customerCode}
+                        </Badge>
+                        {customer.isBlocked && (
+                          <Badge variant="destructive" className="text-xs">
+                            محظور
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="space-y-1">
