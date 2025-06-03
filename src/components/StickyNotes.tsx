@@ -49,10 +49,24 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
       createdAt: new Date().toISOString(),
       color: "yellow",
       type: "note"
+    },
+    {
+      id: "2",
+      title: "مهام اليوم",
+      content: "",
+      completed: false,
+      createdAt: new Date().toISOString(),
+      color: "blue",
+      type: "checklist",
+      checklistItems: [
+        { id: "c1", text: "مقابلة المدير", completed: false },
+        { id: "c2", text: "تنظيف المكتب", completed: true },
+        { id: "c3", text: "مراجعة التقارير", completed: false }
+      ]
     }
   ]);
   const [newNote, setNewNote] = useState({ title: "", content: "", color: "yellow", type: "note" as 'note' | 'checklist' });
-  const [newChecklistItem, setNewChecklistItem] = useState("");
+  const [newChecklistItems, setNewChecklistItems] = useState<string[]>([""]);
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -72,6 +86,17 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
       return;
     }
 
+    let checklistItems: ChecklistItem[] = [];
+    if (newNote.type === 'checklist') {
+      checklistItems = newChecklistItems
+        .filter(item => item.trim())
+        .map((item, index) => ({
+          id: `item_${Date.now()}_${index}`,
+          text: item.trim(),
+          completed: false
+        }));
+    }
+
     const note: Note = {
       id: Date.now().toString(),
       title: newNote.title,
@@ -80,12 +105,12 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
       createdAt: new Date().toISOString(),
       color: newNote.color,
       type: newNote.type,
-      checklistItems: newNote.type === 'checklist' ? [] : undefined
+      checklistItems: newNote.type === 'checklist' ? checklistItems : undefined
     };
 
     setNotes(prev => [note, ...prev]);
     setNewNote({ title: "", content: "", color: "yellow", type: "note" });
-    setNewChecklistItem("");
+    setNewChecklistItems([""]);
     
     toast({
       title: language === "ar" ? "تم إضافة الملاحظة" : "Note Added",
@@ -148,6 +173,20 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
     setEditingNote(null);
   };
 
+  const addNewChecklistItemField = () => {
+    setNewChecklistItems(prev => [...prev, ""]);
+  };
+
+  const updateNewChecklistItem = (index: number, value: string) => {
+    setNewChecklistItems(prev => prev.map((item, i) => i === index ? value : item));
+  };
+
+  const removeNewChecklistItem = (index: number) => {
+    if (newChecklistItems.length > 1) {
+      setNewChecklistItems(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const activeNotes = notes.filter(note => !note.completed);
   const completedNotes = notes.filter(note => note.completed);
   const displayNotes = showCompleted ? completedNotes : activeNotes;
@@ -198,7 +237,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
               />
               
-              {newNote.type === 'note' && (
+              {newNote.type === 'note' ? (
                 <Textarea
                   placeholder={language === "ar" ? "المحتوى..." : "Content..."}
                   value={newNote.content}
@@ -207,6 +246,40 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                   className={`text-xs ${isRTL ? 'text-right' : 'text-left'}`}
                   style={{ fontFamily: 'Tajawal, sans-serif' }}
                 />
+              ) : (
+                <div className="space-y-1">
+                  {newChecklistItems.map((item, index) => (
+                    <div key={index} className="flex gap-1">
+                      <Input
+                        placeholder={`${language === "ar" ? "مهمة" : "Task"} ${index + 1}...`}
+                        value={item}
+                        onChange={(e) => updateNewChecklistItem(index, e.target.value)}
+                        className={`text-xs flex-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                        style={{ fontFamily: 'Tajawal, sans-serif' }}
+                      />
+                      {newChecklistItems.length > 1 && (
+                        <Button
+                          onClick={() => removeNewChecklistItem(index)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    onClick={addNewChecklistItemField}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    إضافة مهمة
+                  </Button>
+                </div>
               )}
               
               {/* Color Picker */}
@@ -385,7 +458,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
               style={{ fontFamily: 'Tajawal, sans-serif' }}
             />
             
-            {newNote.type === 'note' && (
+            {newNote.type === 'note' ? (
               <Textarea
                 placeholder={language === "ar" ? "محتوى الملاحظة..." : "Note content..."}
                 value={newNote.content}
@@ -394,6 +467,43 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                 className={isRTL ? 'text-right' : 'text-left'}
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
               />
+            ) : (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  المهام:
+                </label>
+                {newChecklistItems.map((item, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      placeholder={`${language === "ar" ? "مهمة" : "Task"} ${index + 1}...`}
+                      value={item}
+                      onChange={(e) => updateNewChecklistItem(index, e.target.value)}
+                      className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                      style={{ fontFamily: 'Tajawal, sans-serif' }}
+                    />
+                    {newChecklistItems.length > 1 && (
+                      <Button
+                        onClick={() => removeNewChecklistItem(index)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  onClick={addNewChecklistItemField}
+                  variant="ghost"
+                  size="sm"
+                  className="w-full flex items-center gap-2"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                >
+                  <Plus className="w-4 h-4" />
+                  إضافة مهمة جديدة
+                </Button>
+              </div>
             )}
             
             {/* Color Picker */}
@@ -440,7 +550,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
           </div>
 
           {/* Notes Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {displayNotes.map(note => {
               const colorClasses = getColorClasses(note.color);
               return (
@@ -517,22 +627,23 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
                           ))}
                           <div className={`flex gap-1 mt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <Input
-                              placeholder="إضافة عنصر..."
-                              value={newChecklistItem}
-                              onChange={(e) => setNewChecklistItem(e.target.value)}
+                              placeholder="إضافة مهمة..."
                               className="flex-1 h-6 text-xs"
                               style={{ fontFamily: 'Tajawal, sans-serif' }}
                               onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                  addChecklistItem(note.id, newChecklistItem);
-                                  setNewChecklistItem("");
+                                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                  addChecklistItem(note.id, e.currentTarget.value);
+                                  e.currentTarget.value = "";
                                 }
                               }}
                             />
                             <Button
-                              onClick={() => {
-                                addChecklistItem(note.id, newChecklistItem);
-                                setNewChecklistItem("");
+                              onClick={(e) => {
+                                const input = e.currentTarget.parentElement?.querySelector('input');
+                                if (input && input.value.trim()) {
+                                  addChecklistItem(note.id, input.value);
+                                  input.value = "";
+                                }
                               }}
                               size="sm"
                               className="h-6 px-2 text-xs"

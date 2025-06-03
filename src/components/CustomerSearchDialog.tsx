@@ -8,6 +8,7 @@ import { AddCustomerDialog } from "./AddCustomerDialog";
 
 interface Customer {
   id: string;
+  customerCode: string;
   name: string;
   phone: string;
   lastPurchase?: string;
@@ -15,9 +16,9 @@ interface Customer {
 
 // Mock data - سيتم استبدالها ببيانات Supabase
 const mockCustomers: Customer[] = [
-  { id: "1", name: "أحمد محمد", phone: "0501234567", lastPurchase: "2024-01-15" },
-  { id: "2", name: "فاطمة علي", phone: "0507654321", lastPurchase: "2024-01-10" },
-  { id: "3", name: "خالد أحمد", phone: "0501111111", lastPurchase: "2024-01-05" },
+  { id: "1", customerCode: "C001", name: "أحمد محمد", phone: "0501234567", lastPurchase: "2024-01-15" },
+  { id: "2", customerCode: "C002", name: "فاطمة علي", phone: "0507654321", lastPurchase: "2024-01-10" },
+  { id: "3", customerCode: "C003", name: "خالد أحمد", phone: "0501111111", lastPurchase: "2024-01-05" },
 ];
 
 interface CustomerSearchDialogProps {
@@ -40,7 +41,8 @@ export const CustomerSearchDialog = ({
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>(
     mockCustomers.filter(customer => 
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm)
+      customer.phone.includes(searchTerm) ||
+      customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
@@ -50,7 +52,8 @@ export const CustomerSearchDialog = ({
     setInternalSearchTerm(term);
     const filtered = mockCustomers.filter(customer => 
       customer.name.toLowerCase().includes(term.toLowerCase()) ||
-      customer.phone.includes(term)
+      customer.phone.includes(term) ||
+      customer.customerCode.toLowerCase().includes(term.toLowerCase())
     );
     setFilteredCustomers(filtered);
   };
@@ -79,7 +82,7 @@ export const CustomerSearchDialog = ({
             <div className="relative">
               <Search className={`absolute top-3 h-4 w-4 text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`} />
               <Input
-                placeholder={language === "ar" ? "ابحث بالاسم أو رقم الجوال..." : "Search by name or phone..."}
+                placeholder={language === "ar" ? "ابحث بالاسم، رقم الجوال، أو رمز العميل..." : "Search by name, phone, or customer code..."}
                 value={internalSearchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 className={isRTL ? 'pr-10' : 'pl-10'}
@@ -118,9 +121,14 @@ export const CustomerSearchDialog = ({
                     <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <User className="w-5 h-5 text-blue-600" />
                       <div className="flex-1">
-                        <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          {customer.name}
-                        </p>
+                        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {customer.name}
+                          </p>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            {customer.customerCode}
+                          </span>
+                        </div>
                         <p className="text-sm text-gray-600">
                           {customer.phone}
                         </p>
