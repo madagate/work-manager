@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -98,6 +97,24 @@ const CustomerFollowUp = () => {
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
 
+  // Helper functions moved to top before they are used
+  const getDaysSinceLastPurchase = (lastPurchase: string) => {
+    const today = new Date();
+    const purchaseDate = new Date(lastPurchase);
+    const diffTime = Math.abs(today.getTime() - purchaseDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const getDaysSinceLastMessage = (lastMessage?: string) => {
+    if (!lastMessage) return null;
+    const today = new Date();
+    const messageDate = new Date(lastMessage);
+    const diffTime = Math.abs(today.getTime() - messageDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
   const filteredCustomers = customers.filter(customer => {
     const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          customer.phone.includes(searchTerm);
@@ -138,23 +155,6 @@ const CustomerFollowUp = () => {
       title: "تم إرسال الرسالة",
       description: `تم إرسال رسالة واتساب إلى ${customer.name}`,
     });
-  };
-
-  const getDaysSinceLastPurchase = (lastPurchase: string) => {
-    const today = new Date();
-    const purchaseDate = new Date(lastPurchase);
-    const diffTime = Math.abs(today.getTime() - purchaseDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const getDaysSinceLastMessage = (lastMessage?: string) => {
-    if (!lastMessage) return null;
-    const today = new Date();
-    const messageDate = new Date(lastMessage);
-    const diffTime = Math.abs(today.getTime() - messageDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
   };
 
   const updateCustomerNotes = (customerId: string, notes: string) => {
