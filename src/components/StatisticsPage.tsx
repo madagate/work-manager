@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-import { TrendingUp, DollarSign, Package, Users, Calendar, Battery, Trash2 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { TrendingUp, DollarSign, Package, Users, Calendar, Battery, Trash2, Printer } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface StatisticsPageProps {
@@ -23,11 +23,11 @@ const dailyData = [
 ];
 
 const batteryTypeData = [
-  { name: "بطاريات عادية", value: 45, color: "#8884d8" },
-  { name: "بطاريات جافة", value: 25, color: "#82ca9d" },
-  { name: "بطاريات زجاج", value: 15, color: "#ffc658" },
-  { name: "بطاريات تعبئة", value: 10, color: "#ff7300" },
-  { name: "رصاص", value: 5, color: "#8dd1e1" }
+  { name: "بطاريات عادية", value: 45, amount: 125000, avgPrice: 280 },
+  { name: "بطاريات جافة", value: 25, amount: 68000, avgPrice: 272 },
+  { name: "بطاريات زجاج", value: 15, amount: 42000, avgPrice: 280 },
+  { name: "بطاريات تعبئة", value: 10, amount: 28000, avgPrice: 280 },
+  { name: "رصاص", value: 5, amount: 16000, avgPrice: 320 }
 ];
 
 const monthlyData = [
@@ -48,8 +48,13 @@ export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
     toast({
       title: language === "ar" ? "تم مسح البيانات" : "Data Cleared",
       description: language === "ar" ? "تم مسح جميع البيانات بنجاح" : "All data has been cleared successfully",
+      duration: 2000,
     });
     setShowClearDialog(false);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const summaryCards = [
@@ -89,11 +94,21 @@ export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Clear Data Button */}
-      <div className="flex justify-end">
+      {/* Action Buttons */}
+      <div className="flex justify-between items-center">
+        <Button
+          onClick={handlePrint}
+          variant="outline"
+          className="flex items-center gap-2 print:hidden"
+          style={{ fontFamily: 'Tajawal, sans-serif' }}
+        >
+          <Printer className="w-4 h-4" />
+          {language === "ar" ? "طباعة" : "Print"}
+        </Button>
+
         <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
           <DialogTrigger asChild>
-            <Button variant="destructive" className="flex items-center gap-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            <Button variant="destructive" className="flex items-center gap-2 print:hidden" style={{ fontFamily: 'Tajawal, sans-serif' }}>
               <Trash2 className="w-4 h-4" />
               {language === "ar" ? "تصفية البيانات" : "Clear Data"}
             </Button>
@@ -170,7 +185,7 @@ export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
           </CardContent>
         </Card>
 
-        {/* Battery Types Distribution */}
+        {/* Battery Types Distribution - Redesigned */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
@@ -179,25 +194,26 @@ export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={batteryTypeData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {batteryTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {batteryTypeData.map((item, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{item.name}</span>
+                    <div className="flex gap-4 text-xs text-gray-600">
+                      <span>{item.value}%</span>
+                      <span>{item.amount.toLocaleString()} ريال</span>
+                      <span>متوسط: {item.avgPrice} ريال</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${item.value}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
