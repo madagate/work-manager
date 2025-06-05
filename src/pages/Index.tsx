@@ -5,8 +5,9 @@ import { StickyNotes } from "@/components/StickyNotes";
 import { StatisticsPage } from "@/components/StatisticsPage";
 import { BatteryTypeManagement } from "@/components/BatteryTypeManagement";
 import { Navigation } from "@/components/Navigation";
-import { Calendar, StickyNote, BarChart, MessageCircle, Battery } from "lucide-react";
+import { Calendar, StickyNote, BarChart, MessageCircle, Battery, Printer } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import CustomerFollowUp from "./CustomerFollowUp";
 
 const Index = () => {
@@ -23,6 +24,10 @@ const Index = () => {
 
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const getTabText = (key: string) => {
@@ -56,6 +61,19 @@ const Index = () => {
           <p className="text-sm sm:text-base text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             {getMainDescription()}
           </p>
+        </div>
+
+        {/* Print Button */}
+        <div className="mb-4 flex justify-center">
+          <Button
+            onClick={handlePrint}
+            variant="outline"
+            className="flex items-center gap-2 flex-row-reverse print:hidden"
+            style={{ fontFamily: 'Tajawal, sans-serif' }}
+          >
+            <Printer className="w-4 h-4" />
+            {language === "ar" ? "طباعة" : "Print"}
+          </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
@@ -103,6 +121,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="daily" className="space-y-4 sm:space-y-6">
+            {/* Move StickyNotes to top of daily purchases */}
             <StickyNotes compact={true} language={language} />
             <DailyPurchases language={language} />
           </TabsContent>
