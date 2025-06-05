@@ -1,10 +1,9 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, Plus, Trash2, Check } from "lucide-react";
+import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CustomerSearchDialog } from "./CustomerSearchDialog";
 import { DateNavigation } from "./DateNavigation";
@@ -18,7 +17,6 @@ interface Purchase {
   total: number;
   discount: number;
   finalTotal: number;
-  saved?: boolean;
 }
 
 const batteryTypes = [
@@ -44,8 +42,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
       price: 0,
       total: 0,
       discount: 0,
-      finalTotal: 0,
-      saved: false
+      finalTotal: 0
     }
   ]);
   
@@ -72,23 +69,6 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
     });
   };
 
-  const savePurchase = (index: number) => {
-    setPurchases(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], saved: true };
-      return updated;
-    });
-    
-    toast({
-      title: language === "ar" ? "تم الحفظ" : "Saved",
-      description: language === "ar" ? "تم حفظ السطر بنجاح" : "Line saved successfully",
-      duration: 2000,
-    });
-
-    // Add new row after saving
-    addRow();
-  };
-
   const addRow = () => {
     const newPurchase: Purchase = {
       id: Date.now().toString(),
@@ -98,8 +78,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
       price: 0,
       total: 0,
       discount: 0,
-      finalTotal: 0,
-      saved: false
+      finalTotal: 0
     };
     setPurchases(prev => [...prev, newPurchase]);
   };
@@ -110,7 +89,6 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
       toast({
         title: language === "ar" ? "تم حذف السطر" : "Row Deleted",
         description: language === "ar" ? "تم حذف السطر بنجاح" : "Row deleted successfully",
-        duration: 2000,
       });
     }
   };
@@ -124,35 +102,19 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
       price: 0,
       total: 0,
       discount: 0,
-      finalTotal: 0,
-      saved: false
+      finalTotal: 0
     }]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, rowIndex: number, field: string) => {
     const totalRows = purchases.length;
-    const fields = ['customerName', 'batteryType', 'quantity', 'price', 'discount', 'save'];
+    const fields = ['customerName', 'batteryType', 'quantity', 'price', 'discount'];
     const currentFieldIndex = fields.indexOf(field);
 
     if (e.key === 'Enter' || e.key === 'Tab') {
       e.preventDefault();
       
-      // Special handling for discount field - jump to save icon
-      if (field === 'discount') {
-        setFocusedCell({ row: rowIndex, col: 'save' });
-        return;
-      }
-      
-      // Special handling for save icon - save and create new row
-      if (field === 'save') {
-        savePurchase(rowIndex);
-        setTimeout(() => {
-          setFocusedCell({ row: totalRows, col: 'customerName' });
-        }, 100);
-        return;
-      }
-      
-      if (currentFieldIndex < fields.length - 2) { // -2 to exclude save field from normal navigation
+      if (currentFieldIndex < fields.length - 1) {
         setFocusedCell({ row: rowIndex, col: fields[currentFieldIndex + 1] });
       } else if (rowIndex < totalRows - 1) {
         setFocusedCell({ row: rowIndex + 1, col: fields[0] });
@@ -201,16 +163,9 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   // Focus management
   useEffect(() => {
     if (focusedCell) {
-      if (focusedCell.col === 'save') {
-        const button = document.getElementById(`save-${focusedCell.row}`);
-        if (button) {
-          button.focus();
-        }
-      } else {
-        const input = document.getElementById(`${focusedCell.row}-${focusedCell.col}`);
-        if (input) {
-          input.focus();
-        }
+      const input = document.getElementById(`${focusedCell.row}-${focusedCell.col}`);
+      if (input) {
+        input.focus();
       }
     }
   }, [focusedCell]);
@@ -279,7 +234,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
               
               <tbody>
                 {purchases.map((purchase, index) => (
-                  <tr key={purchase.id} className={`border-b hover:bg-gray-50 ${purchase.saved ? 'bg-green-50' : ''}`}>
+                  <tr key={purchase.id} className="border-b hover:bg-gray-50">
                     <td className="p-2">
                       <Input
                         id={`${index}-customerName`}
@@ -361,27 +316,14 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
                     </td>
                     
                     <td className="p-2 text-center">
-                      <div className="flex gap-1 justify-center">
-                        <Button
-                          id={`save-${index}`}
-                          onClick={() => savePurchase(index)}
-                          onKeyDown={(e) => handleKeyDown(e, index, 'save')}
-                          variant="outline"
-                          size="sm"
-                          className={`text-green-600 hover:text-green-800 ${purchase.saved ? 'bg-green-100' : ''}`}
-                          title={language === "ar" ? "حفظ" : "Save"}
-                        >
-                          <Check className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => deleteRow(index)}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <Button
+                        onClick={() => deleteRow(index)}
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </td>
                   </tr>
                 ))}
