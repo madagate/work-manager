@@ -2,7 +2,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { User, Phone, Calendar, Package, DollarSign, TrendingUp, ShoppingCart } from "lucide-react";
 
 interface Purchase {
@@ -53,7 +52,7 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             إحصائيات العميل - {customer.name}
@@ -136,7 +135,7 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
             </CardContent>
           </Card>
 
-          {/* Purchase History - Now as Table */}
+          {/* Purchase History */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 flex-row-reverse" style={{ fontFamily: 'Tajawal, sans-serif' }}>
@@ -146,33 +145,41 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
             </CardHeader>
             <CardContent>
               {customer.purchases.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>التاريخ</TableHead>
-                        <TableHead className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>النوع</TableHead>
-                        <TableHead className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية</TableHead>
-                        <TableHead className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر</TableHead>
-                        <TableHead className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي</TableHead>
-                        <TableHead className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>الخصم</TableHead>
-                        <TableHead className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>المجموع النهائي</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {customer.purchases.map((purchase) => (
-                        <TableRow key={purchase.id}>
-                          <TableCell style={{ fontFamily: 'Tajawal, sans-serif' }}>{purchase.date}</TableCell>
-                          <TableCell style={{ fontFamily: 'Tajawal, sans-serif' }}>{purchase.batteryType}</TableCell>
-                          <TableCell>{purchase.quantity} كيلو</TableCell>
-                          <TableCell>{purchase.pricePerKg} ريال/كيلو</TableCell>
-                          <TableCell>{purchase.total} ريال</TableCell>
-                          <TableCell>{purchase.discount} ريال</TableCell>
-                          <TableCell className="font-bold text-green-600">{purchase.finalTotal} ريال</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-3">
+                  {customer.purchases.map((purchase) => (
+                    <div key={purchase.id} className="border rounded-lg p-4 bg-gray-50">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+                        <div>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>التاريخ: </span>
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{purchase.date}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>النوع: </span>
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{purchase.batteryType}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية: </span>
+                          <span>{purchase.quantity} كيلو</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر: </span>
+                          <span>{purchase.pricePerKg} ريال/كيلو</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي: </span>
+                          <span>{purchase.total} ريال</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الخصم: </span>
+                          <span>{purchase.discount} ريال</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>المجموع النهائي: </span>
+                          <span className="font-bold text-green-600">{purchase.finalTotal} ريال</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <p className="text-center text-gray-500 py-8" style={{ fontFamily: 'Tajawal, sans-serif' }}>
