@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Users, Search, MessageCircle, Phone, Calendar, Filter, User, Package, DollarSign, Edit3, Save, X, Ban } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+
+interface Purchase {
+  id: string;
+  date: string;
+  batteryType: string;
+  quantity: number;
+  pricePerKg: number;
+  total: number;
+  discount: number;
+  finalTotal: number;
+}
 
 interface Customer {
   id: string;
@@ -22,6 +34,9 @@ interface Customer {
   notes?: string;
   isBlocked?: boolean;
   blockReason?: string;
+  purchases: Purchase[];
+  last2Quantities?: number[];
+  last2Prices?: number[];
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -35,7 +50,13 @@ const mockCustomers: Customer[] = [
     totalAmount: 4500,
     averagePrice: 300,
     lastMessageSent: "2024-01-10",
-    notes: "عميل مميز، يشتري بانتظام كل شهر"
+    notes: "عميل مميز، يشتري بانتظام كل شهر",
+    purchases: [
+      { id: "p1", date: "2024-01-15", batteryType: "بطاريات عادية", quantity: 12, pricePerKg: 25, total: 300, discount: 0, finalTotal: 300 },
+      { id: "p2", date: "2024-01-10", batteryType: "بطاريات جافة", quantity: 8, pricePerKg: 30, total: 240, discount: 20, finalTotal: 220 }
+    ],
+    last2Quantities: [12, 8],
+    last2Prices: [25, 30]
   },
   {
     id: "2", 
@@ -45,7 +66,13 @@ const mockCustomers: Customer[] = [
     totalPurchases: 8,
     totalAmount: 2400,
     averagePrice: 300,
-    notes: "تفضل البطاريات اليابانية"
+    notes: "تفضل البطاريات اليابانية",
+    purchases: [
+      { id: "p3", date: "2024-01-10", batteryType: "بطاريات زجاج", quantity: 15, pricePerKg: 35, total: 525, discount: 50, finalTotal: 475 },
+      { id: "p4", date: "2024-01-05", batteryType: "بطاريات عادية", quantity: 10, pricePerKg: 28, total: 280, discount: 0, finalTotal: 280 }
+    ],
+    last2Quantities: [15, 10],
+    last2Prices: [35, 28]
   },
   {
     id: "3",
@@ -57,7 +84,10 @@ const mockCustomers: Customer[] = [
     averagePrice: 300,
     lastMessageSent: "2024-01-01",
     isBlocked: true,
-    blockReason: "مشاكل في الدفع"
+    blockReason: "مشاكل في الدفع",
+    purchases: [],
+    last2Quantities: [0, 0],
+    last2Prices: [0, 0]
   },
   {
     id: "4",
@@ -66,7 +96,13 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-20",
     totalPurchases: 12,
     totalAmount: 3600,
-    averagePrice: 300
+    averagePrice: 300,
+    purchases: [
+      { id: "p5", date: "2024-01-20", batteryType: "بطاريات عادية", quantity: 20, pricePerKg: 26, total: 520, discount: 20, finalTotal: 500 },
+      { id: "p6", date: "2024-01-15", batteryType: "بطاريات جافة", quantity: 14, pricePerKg: 32, total: 448, discount: 0, finalTotal: 448 }
+    ],
+    last2Quantities: [20, 14],
+    last2Prices: [26, 32]
   },
   {
     id: "5",
@@ -76,7 +112,13 @@ const mockCustomers: Customer[] = [
     totalPurchases: 18,
     totalAmount: 5400,
     averagePrice: 300,
-    lastMessageSent: "2024-01-05"
+    lastMessageSent: "2024-01-05",
+    purchases: [
+      { id: "p7", date: "2024-01-08", batteryType: "بطاريات زجاج", quantity: 18, pricePerKg: 38, total: 684, discount: 50, finalTotal: 634 },
+      { id: "p8", date: "2024-01-03", batteryType: "بطاريات عادية", quantity: 16, pricePerKg: 24, total: 384, discount: 0, finalTotal: 384 }
+    ],
+    last2Quantities: [18, 16],
+    last2Prices: [38, 24]
   },
   {
     id: "6",
@@ -85,7 +127,13 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-12",
     totalPurchases: 25,
     totalAmount: 7500,
-    averagePrice: 300
+    averagePrice: 300,
+    purchases: [
+      { id: "p9", date: "2024-01-12", batteryType: "بطاريات جافة", quantity: 22, pricePerKg: 29, total: 638, discount: 30, finalTotal: 608 },
+      { id: "p10", date: "2024-01-07", batteryType: "بطاريات عادية", quantity: 25, pricePerKg: 27, total: 675, discount: 0, finalTotal: 675 }
+    ],
+    last2Quantities: [22, 25],
+    last2Prices: [29, 27]
   }
 ];
 
@@ -97,7 +145,7 @@ const CustomerFollowUp = () => {
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
 
-  // Helper functions moved to top before they are used
+  // Helper functions
   const getDaysSinceLastPurchase = (lastPurchase: string) => {
     const today = new Date();
     const purchaseDate = new Date(lastPurchase);
@@ -333,11 +381,37 @@ const CustomerFollowUp = () => {
                       </p>
                     </div>
 
-                    {/* WhatsApp Message Info */}
+                    {/* Last 2 Purchases Info */}
                     <div className="bg-green-50 rounded-lg p-2 sm:p-3">
                       <div className="flex items-center gap-2 flex-row-reverse mb-2">
-                        <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                        <Package className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
                         <span className="text-xs sm:text-sm font-semibold text-green-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          آخر مشتريتين
+                        </span>
+                      </div>
+                      {customer.last2Quantities && customer.last2Prices ? (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>الكمية: {customer.last2Quantities[0]} كيلو</span>
+                            <span>السعر: {customer.last2Prices[0]} ريال</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-gray-600">
+                            <span>الكمية: {customer.last2Quantities[1]} كيلو</span>
+                            <span>السعر: {customer.last2Prices[1]} ريال</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          لا توجد مشتريات
+                        </p>
+                      )}
+                    </div>
+
+                    {/* WhatsApp Message Info */}
+                    <div className="bg-yellow-50 rounded-lg p-2 sm:p-3">
+                      <div className="flex items-center gap-2 flex-row-reverse mb-2">
+                        <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" />
+                        <span className="text-xs sm:text-sm font-semibold text-yellow-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                           آخر رسالة واتساب
                         </span>
                       </div>
@@ -374,11 +448,11 @@ const CustomerFollowUp = () => {
                     </div>
 
                     {/* Customer Notes */}
-                    <div className="bg-yellow-50 rounded-lg p-2 sm:p-3">
+                    <div className="bg-purple-50 rounded-lg p-2 sm:p-3">
                       <div className="flex items-center justify-between flex-row-reverse mb-2">
                         <div className="flex items-center gap-2 flex-row-reverse">
-                          <User className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" />
-                          <span className="text-xs sm:text-sm font-semibold text-yellow-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          <User className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
+                          <span className="text-xs sm:text-sm font-semibold text-purple-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             ملاحظات العميل
                           </span>
                         </div>

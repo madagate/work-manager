@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -5,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Users, Search, Calendar, TrendingUp, User, Package, DollarSign, Edit3, Save, X, Ban } from "lucide-react";
+import { Users, Search, Calendar, TrendingUp, User, Package, DollarSign, Edit3, Save, X, Ban, UserPlus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { AddCustomerDialog } from "./AddCustomerDialog";
 
 interface Purchase {
   id: string;
@@ -24,6 +26,7 @@ interface Customer {
   customerCode: string;
   name: string;
   phone: string;
+  description?: string;
   lastPurchase: string;
   totalPurchases: number;
   totalAmount: number;
@@ -41,6 +44,7 @@ const mockCustomers: Customer[] = [
     customerCode: "C001",
     name: "أحمد محمد",
     phone: "0501234567",
+    description: "عميل مميز وموثوق",
     lastPurchase: "2024-01-15",
     totalPurchases: 15,
     totalAmount: 4500,
@@ -74,6 +78,7 @@ const mockCustomers: Customer[] = [
     customerCode: "C002",
     name: "فاطمة علي",
     phone: "0507654321",
+    description: "تتعامل مع البطاريات اليابانية فقط",
     lastPurchase: "2024-01-10",
     totalPurchases: 8,
     totalAmount: 2400,
@@ -112,6 +117,7 @@ export const CustomerManagement = () => {
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -125,6 +131,17 @@ export const CustomerManagement = () => {
     const diffTime = Math.abs(today.getTime() - purchaseDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const generateNextCustomerCode = () => {
+    if (customers.length === 0) return "C001";
+    
+    const maxCode = customers.reduce((max, customer) => {
+      const codeNumber = parseInt(customer.customerCode.replace('C', ''));
+      return codeNumber > max ? codeNumber : max;
+    }, 0);
+    
+    return `C${String(maxCode + 1).padStart(3, '0')}`;
   };
 
   const updateCustomerNotes = (customerId: string, notes: string) => {
@@ -152,6 +169,19 @@ export const CustomerManagement = () => {
       title: customer?.isBlocked ? "تم إلغاء حظر العميل" : "تم حظر العميل",
       description: customer?.isBlocked ? "تم إلغاء حظر العميل بنجاح" : "تم حظر العميل بنجاح",
     });
+  };
+
+  const handleCustomerAdded = (newCustomer: Customer) => {
+    const customerWithDefaults = {
+      ...newCustomer,
+      lastPurchase: new Date().toISOString().split('T')[0],
+      totalPurchases: 0,
+      totalAmount: 0,
+      averagePrice: 0,
+      purchases: []
+    };
+    setCustomers(prev => [...prev, customerWithDefaults]);
+    setShowAddDialog(false);
   };
 
   const CustomerDetailsDialog = ({ customer }: { customer: Customer }) => (
@@ -224,13 +254,30 @@ export const CustomerManagement = () => {
                       متوسط الشراء
                     </p>
                     <p className="text-sm font-semibold">
-                      {Math.round(customer.totalAmount / customer.totalPurchases).toLocaleString()} ريال
+                      {customer.totalPurchases > 0 ? Math.round(customer.totalAmount / customer.totalPurchases).toLocaleString() : 0} ريال
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Customer Info */}
+          {customer.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 flex-row-reverse" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  <User className="w-5 h-5 text-blue-600" />
+                  وصف العميل
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {customer.description}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Customer Notes */}
           <Card>
@@ -360,15 +407,25 @@ export const CustomerManagement = () => {
         
         <CardContent className="p-4 sm:p-6">
           <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="ابحث عن عميل..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pr-10 text-sm"
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="ابحث عن عميل..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10 text-sm"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                />
+              </div>
+              <Button
+                onClick={() => setShowAddDialog(true)}
+                className="flex items-center gap-2 flex-row-reverse bg-blue-600 hover:bg-blue-700"
                 style={{ fontFamily: 'Tajawal, sans-serif' }}
-              />
+              >
+                <UserPlus className="w-4 h-4" />
+                إضافة عميل جديد
+              </Button>
             </div>
           </div>
 
@@ -400,7 +457,7 @@ export const CustomerManagement = () => {
               <CardContent className="p-3 sm:p-4 text-center">
                 <Calendar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-orange-600" />
                 <p className="text-lg sm:text-2xl font-bold">
-                  {Math.round(customers.reduce((sum, c) => sum + c.averagePrice, 0) / customers.length)}
+                  {customers.length > 0 ? Math.round(customers.reduce((sum, c) => sum + c.averagePrice, 0) / customers.length) : 0}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                   متوسط سعر الكيلو
@@ -440,6 +497,11 @@ export const CustomerManagement = () => {
                   
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm text-gray-600">{customer.phone}</p>
+                    {customer.description && (
+                      <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {customer.description}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       آخر شراء: {customer.lastPurchase}
                     </p>
@@ -547,6 +609,15 @@ export const CustomerManagement = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Add Customer Dialog */}
+      <AddCustomerDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onCustomerAdded={handleCustomerAdded}
+        nextCustomerCode={generateNextCustomerCode()}
+        language="ar"
+      />
     </div>
   );
 };

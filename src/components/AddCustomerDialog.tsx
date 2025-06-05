@@ -4,12 +4,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 
 interface Customer {
   id: string;
+  customerCode: string;
   name: string;
   phone: string;
+  description?: string;
   lastPurchase?: string;
 }
 
@@ -19,6 +22,7 @@ interface AddCustomerDialogProps {
   onCustomerAdded: (customer: Customer) => void;
   initialName?: string;
   language?: string;
+  nextCustomerCode?: string;
 }
 
 export const AddCustomerDialog = ({ 
@@ -26,10 +30,12 @@ export const AddCustomerDialog = ({
   onClose, 
   onCustomerAdded, 
   initialName = "",
-  language = "ar" 
+  language = "ar",
+  nextCustomerCode = "C001"
 }: AddCustomerDialogProps) => {
   const [name, setName] = useState(initialName);
   const [phone, setPhone] = useState("");
+  const [description, setDescription] = useState("");
 
   const isRTL = language === "ar";
 
@@ -47,20 +53,24 @@ export const AddCustomerDialog = ({
 
     const newCustomer: Customer = {
       id: Date.now().toString(),
+      customerCode: nextCustomerCode,
       name: name.trim(),
       phone: phone.trim(),
+      description: description.trim() || undefined,
     };
 
     onCustomerAdded(newCustomer);
     
     toast({
       title: language === "ar" ? "تم إضافة العميل" : "Customer Added",
-      description: language === "ar" ? `تم إضافة العميل ${name} بنجاح` : `Customer ${name} added successfully`,
+      description: language === "ar" ? `تم إضافة العميل ${name} برمز ${nextCustomerCode}` : `Customer ${name} added with code ${nextCustomerCode}`,
     });
 
     // Reset form
     setName("");
     setPhone("");
+    setDescription("");
+    onClose();
   };
 
   return (
@@ -73,6 +83,19 @@ export const AddCustomerDialog = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="customerCode" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              {language === "ar" ? "رمز العميل" : "Customer Code"}
+            </Label>
+            <Input
+              id="customerCode"
+              value={nextCustomerCode}
+              disabled
+              className="mt-1 bg-gray-100"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            />
+          </div>
+
           <div>
             <Label htmlFor="customerName" style={{ fontFamily: 'Tajawal, sans-serif' }}>
               {language === "ar" ? "اسم العميل" : "Customer Name"}
@@ -99,6 +122,21 @@ export const AddCustomerDialog = ({
               placeholder="05xxxxxxxx"
               className="mt-1"
               dir="ltr"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="customerDescription" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              {language === "ar" ? "وصف العميل" : "Customer Description"}
+            </Label>
+            <Textarea
+              id="customerDescription"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={language === "ar" ? "أدخل وصف للعميل (اختياري)" : "Enter customer description (optional)"}
+              className="mt-1 text-right"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+              rows={3}
             />
           </div>
 
