@@ -82,6 +82,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
         title: language === "ar" ? "خطأ" : "Error",
         description: language === "ar" ? "يرجى إدخال عنوان للملاحظة" : "Please enter a note title",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -115,6 +116,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
     toast({
       title: language === "ar" ? "تم إضافة الملاحظة" : "Note Added",
       description: language === "ar" ? "تم إضافة الملاحظة بنجاح" : "Note added successfully",
+      duration: 2000,
     });
   };
 
@@ -123,6 +125,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
     toast({
       title: language === "ar" ? "تم حذف الملاحظة" : "Note Deleted",
       description: language === "ar" ? "تم حذف الملاحظة بنجاح" : "Note deleted successfully",
+      duration: 2000,
     });
   };
 
@@ -190,6 +193,11 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
   const activeNotes = notes.filter(note => !note.completed);
   const completedNotes = notes.filter(note => note.completed);
   const displayNotes = showCompleted ? completedNotes : activeNotes;
+
+  // If compact mode and no active notes, return null to hide the section
+  if (compact && activeNotes.length === 0) {
+    return null;
+  }
 
   if (compact) {
     return (
@@ -309,7 +317,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
           </CardContent>
         </Card>
 
-        {/* Existing Notes */}
+        {/* Only show active notes in compact mode */}
         {activeNotes.slice(0, 5).map(note => {
           const colorClasses = getColorClasses(note.color);
           return (
@@ -556,7 +564,7 @@ export const StickyNotes = ({ compact = false, language = "ar" }: StickyNotesPro
               return (
                 <div key={note.id} className={`p-4 rounded-lg border-l-4 ${
                   note.completed 
-                    ? 'bg-gray-50 border-gray-400' 
+                    ? 'bg-gray-100 border-gray-400 opacity-60' 
                     : `${colorClasses.bg} border-${note.color}-400`
                 } ${isRTL ? 'border-r-4 border-l-0' : ''}`}>
                   {editingNote === note.id ? (
@@ -712,6 +720,7 @@ const EditNoteForm = ({ note, onSave, onCancel, language = "ar", compact = false
         title: language === "ar" ? "خطأ" : "Error",
         description: language === "ar" ? "يرجى إدخال عنوان للملاحظة" : "Please enter a note title",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }

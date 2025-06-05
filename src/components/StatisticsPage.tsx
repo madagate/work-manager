@@ -1,248 +1,216 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-import { TrendingUp, DollarSign, Package, Users, Calendar, Battery, Trash2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { TrendingUp, Package, DollarSign, Users, Battery, Calendar } from "lucide-react";
 
 interface StatisticsPageProps {
   language?: string;
 }
 
-// Mock data for demonstration
-const dailyData = [
-  { date: "2024-01-01", amount: 1200, purchases: 5 },
-  { date: "2024-01-02", amount: 1800, purchases: 7 },
-  { date: "2024-01-03", amount: 900, purchases: 3 },
-  { date: "2024-01-04", amount: 2100, purchases: 8 },
-  { date: "2024-01-05", amount: 1500, purchases: 6 },
-  { date: "2024-01-06", amount: 2400, purchases: 9 },
-  { date: "2024-01-07", amount: 1700, purchases: 5 },
-];
-
-const batteryTypeData = [
-  { name: "بطاريات عادية", value: 45, color: "#8884d8" },
-  { name: "بطاريات جافة", value: 25, color: "#82ca9d" },
-  { name: "بطاريات زجاج", value: 15, color: "#ffc658" },
-  { name: "بطاريات تعبئة", value: 10, color: "#ff7300" },
-  { name: "رصاص", value: 5, color: "#8dd1e1" }
-];
-
-const monthlyData = [
-  { month: "يناير", revenue: 45000, customers: 120 },
-  { month: "فبراير", revenue: 38000, customers: 98 },
-  { month: "مارس", revenue: 52000, customers: 145 },
-  { month: "أبريل", revenue: 41000, customers: 110 },
-  { month: "مايو", revenue: 48000, customers: 132 },
-  { month: "يونيو", revenue: 55000, customers: 156 },
-];
-
 export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
-  const [showClearDialog, setShowClearDialog] = useState(false);
   const isRTL = language === "ar";
 
-  const clearAllData = () => {
-    // Here you would clear all data from the database
-    toast({
-      title: language === "ar" ? "تم مسح البيانات" : "Data Cleared",
-      description: language === "ar" ? "تم مسح جميع البيانات بنجاح" : "All data has been cleared successfully",
-    });
-    setShowClearDialog(false);
-  };
-
-  const summaryCards = [
-    {
-      title: language === "ar" ? "إجمالي الإيرادات" : "Total Revenue",
-      value: "279,000",
-      unit: language === "ar" ? "ريال" : "SAR",
-      icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-100"
-    },
-    {
-      title: language === "ar" ? "عدد المشتريات" : "Total Purchases",
-      value: "843",
-      unit: language === "ar" ? "مشترى" : "purchases",
-      icon: Package,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100"
-    },
-    {
-      title: language === "ar" ? "عدد العملاء" : "Total Customers",
-      value: "156",
-      unit: language === "ar" ? "عميل" : "customers",
-      icon: Users,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100"
-    },
-    {
-      title: language === "ar" ? "متوسط الشراء" : "Average Purchase",
-      value: "331",
-      unit: language === "ar" ? "ريال" : "SAR",
-      icon: TrendingUp,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100"
-    }
+  // Sample data for charts
+  const monthlyData = [
+    { month: 'يناير', sales: 4000, customers: 24 },
+    { month: 'فبراير', sales: 3000, customers: 18 },
+    { month: 'مارس', sales: 5000, customers: 32 },
+    { month: 'أبريل', sales: 4500, customers: 28 },
+    { month: 'مايو', sales: 6000, customers: 35 },
+    { month: 'يونيو', sales: 5500, customers: 31 }
   ];
 
+  const batteryDistribution = [
+    { name: 'بطاريات عادية', value: 35, color: '#3B82F6', amount: 15500 },
+    { name: 'بطاريات جافة', value: 25, color: '#10B981', amount: 11200 },
+    { name: 'بطاريات زجاج', value: 20, color: '#F59E0B', amount: 8900 },
+    { name: 'بطاريات تعبئة', value: 15, color: '#EF4444', amount: 6700 },
+    { name: 'رصاص', value: 5, color: '#8B5CF6', amount: 2200 }
+  ];
+
+  const topCustomers = [
+    { name: 'أحمد محمد', purchases: 150, amount: 4500, lastPurchase: '2024-01-15' },
+    { name: 'سارة أحمد', purchases: 120, amount: 3600, lastPurchase: '2024-01-10' },
+    { name: 'محمد علي', purchases: 100, amount: 3000, lastPurchase: '2024-01-08' },
+    { name: 'فاطمة سالم', purchases: 95, amount: 2850, lastPurchase: '2024-01-12' },
+    { name: 'عبدالله حسن', purchases: 80, amount: 2400, lastPurchase: '2024-01-14' }
+  ];
+
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+
   return (
-    <div className="space-y-6">
-      {/* Clear Data Button */}
-      <div className="flex justify-end">
-        <Dialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-          <DialogTrigger asChild>
-            <Button variant="destructive" className="flex items-center gap-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              <Trash2 className="w-4 h-4" />
-              {language === "ar" ? "تصفية البيانات" : "Clear Data"}
-            </Button>
-          </DialogTrigger>
-          <DialogContent dir={isRTL ? "rtl" : "ltr"}>
-            <DialogHeader>
-              <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                {language === "ar" ? "تأكيد مسح البيانات" : "Confirm Data Clearing"}
-              </DialogTitle>
-            </DialogHeader>
-            <p style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              {language === "ar" 
-                ? "هل أنت متأكد من رغبتك في مسح جميع البيانات؟ هذا الإجراء لا يمكن التراجع عنه." 
-                : "Are you sure you want to clear all data? This action cannot be undone."}
-            </p>
-            <DialogFooter className={isRTL ? "flex-row-reverse" : ""}>
-              <Button variant="outline" onClick={() => setShowClearDialog(false)}>
-                {language === "ar" ? "إلغاء" : "Cancel"}
-              </Button>
-              <Button variant="destructive" onClick={clearAllData}>
-                {language === "ar" ? "مسح البيانات" : "Clear Data"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Summary Cards */}
+    <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
+      {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summaryCards.map((card, index) => (
-          <Card key={index} className="shadow-lg hover:shadow-xl transition-shadow">
-            <CardContent className="p-6">
-              <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {card.title}
-                  </p>
-                  <p className="text-2xl font-bold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {card.value}
-                  </p>
-                  <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {card.unit}
-                  </p>
-                </div>
-                <div className={`w-12 h-12 rounded-full ${card.bgColor} flex items-center justify-center`}>
-                  <card.icon className={`w-6 h-6 ${card.color}`} />
-                </div>
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "إجمالي المبيعات" : "Total Sales"}
+                </p>
+                <p className="text-2xl font-bold text-green-600">44,600</p>
+                <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "ريال سعودي" : "SAR"}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <div className="bg-green-100 p-3 rounded-full">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "إجمالي الكمية" : "Total Quantity"}
+                </p>
+                <p className="text-2xl font-bold text-blue-600">545</p>
+                <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "كيلوجرام" : "Kg"}
+                </p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <Package className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "عدد العملاء" : "Total Customers"}
+                </p>
+                <p className="text-2xl font-bold text-purple-600">168</p>
+                <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "عميل نشط" : "Active"}
+                </p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <Users className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-lg">
+          <CardContent className="p-6">
+            <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "متوسط السعر" : "Average Price"}
+                </p>
+                <p className="text-2xl font-bold text-orange-600">82</p>
+                <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {language === "ar" ? "ريال/كيلو" : "SAR/Kg"}
+                </p>
+              </div>
+              <div className="bg-orange-100 p-3 rounded-full">
+                <TrendingUp className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Charts Row 1 */}
+      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Daily Revenue Chart */}
+        {/* Monthly Sales Chart */}
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              <TrendingUp className="w-5 h-5" />
-              {language === "ar" ? "الإيرادات اليومية" : "Daily Revenue"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={dailyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="amount" fill="#8884d8" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Battery Types Distribution */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              <Battery className="w-5 h-5" />
-              {language === "ar" ? "توزيع أنواع البطاريات" : "Battery Types Distribution"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={batteryTypeData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {batteryTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Revenue Trend */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              <Calendar className="w-5 h-5" />
-              {language === "ar" ? "اتجاه الإيرادات الشهرية" : "Monthly Revenue Trend"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="revenue" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Customer Growth */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              <Users className="w-5 h-5" />
-              {language === "ar" ? "نمو العملاء" : "Customer Growth"}
+              <BarChart className="w-5 h-5" />
+              {language === "ar" ? "المبيعات الشهرية" : "Monthly Sales"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="month" style={{ fontFamily: 'Tajawal, sans-serif' }} />
                 <YAxis />
-                <Tooltip />
-                <Bar dataKey="customers" fill="#82ca9d" />
+                <Tooltip 
+                  labelStyle={{ fontFamily: 'Tajawal, sans-serif' }}
+                  contentStyle={{ fontFamily: 'Tajawal, sans-serif' }}
+                />
+                <Legend />
+                <Bar dataKey="sales" fill="#3B82F6" name="المبيعات (ريال)" />
+                <Bar dataKey="customers" fill="#10B981" name="العملاء" />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Battery Distribution - Redesigned */}
+        <Card className="shadow-lg">
+          <CardHeader>
+            <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              <Battery className="w-5 h-5" />
+              {language === "ar" ? "توزيع أنواع البطاريات" : "Battery Type Distribution"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {batteryDistribution.map((item, index) => (
+                <div key={item.name} className="space-y-2">
+                  <div className={`flex justify-between items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <div 
+                        className="w-4 h-4 rounded-full" 
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-sm font-medium" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {item.name}
+                      </span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <Badge variant="secondary" className="text-xs">
+                        {item.value}%
+                      </Badge>
+                      <span className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        {item.amount.toLocaleString()} ريال
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="h-2 rounded-full transition-all duration-500 ease-out"
+                      style={{ 
+                        width: `${item.value}%`,
+                        backgroundColor: item.color
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Summary Stats */}
+            <div className="mt-6 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4 text-center">
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <p className="text-lg font-bold text-blue-600">
+                    {batteryDistribution.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    إجمالي القيمة (ريال)
+                  </p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-3">
+                  <p className="text-lg font-bold text-green-600">5</p>
+                  <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    أنواع البطاريات
+                  </p>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -250,7 +218,8 @@ export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
       {/* Top Customers Table */}
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+          <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            <Users className="w-5 h-5" />
             {language === "ar" ? "أفضل العملاء" : "Top Customers"}
           </CardTitle>
         </CardHeader>
@@ -259,33 +228,51 @@ export const StatisticsPage = ({ language = "ar" }: StatisticsPageProps) => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  <th className={`p-3 text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
                     {language === "ar" ? "اسم العميل" : "Customer Name"}
                   </th>
-                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {language === "ar" ? "عدد المشتريات" : "Total Purchases"}
+                  <th className={`p-3 text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "الكمية (كيلو)" : "Quantity (Kg)"}
                   </th>
-                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {language === "ar" ? "إجمالي المبلغ" : "Total Amount"}
+                  <th className={`p-3 text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {language === "ar" ? "المبلغ (ريال)" : "Amount (SAR)"}
                   </th>
-                  <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  <th className={`p-3 text-sm font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
                     {language === "ar" ? "آخر شراء" : "Last Purchase"}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { name: "أحمد محمد", purchases: 25, amount: 8500, lastPurchase: "2024-01-15" },
-                  { name: "فاطمة علي", purchases: 18, amount: 6200, lastPurchase: "2024-01-14" },
-                  { name: "خالد أحمد", purchases: 15, amount: 5800, lastPurchase: "2024-01-13" },
-                  { name: "مريم سالم", purchases: 12, amount: 4300, lastPurchase: "2024-01-12" },
-                  { name: "عبدالله حسن", purchases: 10, amount: 3900, lastPurchase: "2024-01-11" }
-                ].map((customer, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="p-3 font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.name}</td>
-                    <td className="p-3">{customer.purchases}</td>
-                    <td className="p-3 font-semibold text-green-600">{customer.amount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}</td>
-                    <td className="p-3">{customer.lastPurchase}</td>
+                {topCustomers.map((customer, index) => (
+                  <tr key={customer.name} className="border-b hover:bg-gray-50">
+                    <td className={`p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Badge variant={index < 3 ? "default" : "secondary"} className="text-xs">
+                          {index + 1}
+                        </Badge>
+                        <span className="font-medium" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          {customer.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className={`p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <span className="font-semibold text-blue-600">
+                        {customer.purchases}
+                      </span>
+                    </td>
+                    <td className={`p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <span className="font-semibold text-green-600">
+                        {customer.amount.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className={`p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          {customer.lastPurchase}
+                        </span>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
