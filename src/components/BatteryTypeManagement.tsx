@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Battery, Search, Plus, Edit3, Trash2, Save, X } from "lucide-react";
+import { Battery, Search, Plus, Edit3, Trash2, Save, X, Minus, TrendingDown, Package, DollarSign } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface BatteryType {
@@ -15,17 +15,23 @@ interface BatteryType {
   name: string;
   description?: string;
   defaultPrice: number;
+  currentQty: number;
+  averageBuyingPrice: number;
+  lastPrice: number;
   isActive: boolean;
   createdAt: string;
 }
 
-// Mock data
+// Mock data with enhanced details
 const mockBatteryTypes: BatteryType[] = [
   {
     id: "1",
     name: "بطاريات عادية",
     description: "بطاريات السيارات العادية",
     defaultPrice: 25,
+    currentQty: 150,
+    averageBuyingPrice: 20,
+    lastPrice: 22,
     isActive: true,
     createdAt: "2024-01-01"
   },
@@ -34,6 +40,9 @@ const mockBatteryTypes: BatteryType[] = [
     name: "بطاريات جافة",
     description: "بطاريات جافة للسيارات الحديثة",
     defaultPrice: 30,
+    currentQty: 85,
+    averageBuyingPrice: 25,
+    lastPrice: 28,
     isActive: true,
     createdAt: "2024-01-01"
   },
@@ -42,6 +51,9 @@ const mockBatteryTypes: BatteryType[] = [
     name: "بطاريات زجاج",
     description: "بطاريات الزجاج عالية الجودة",
     defaultPrice: 35,
+    currentQty: 45,
+    averageBuyingPrice: 30,
+    lastPrice: 32,
     isActive: true,
     createdAt: "2024-01-01"
   },
@@ -50,6 +62,9 @@ const mockBatteryTypes: BatteryType[] = [
     name: "بطاريات ليثيوم",
     description: "بطاريات ليثيوم متقدمة",
     defaultPrice: 50,
+    currentQty: 0,
+    averageBuyingPrice: 45,
+    lastPrice: 48,
     isActive: false,
     createdAt: "2024-01-01"
   }
@@ -60,10 +75,15 @@ export const BatteryTypeManagement = () => {
   const [batteryTypes, setBatteryTypes] = useState<BatteryType[]>(mockBatteryTypes);
   const [editingType, setEditingType] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showDecreaseDialog, setShowDecreaseDialog] = useState<string | null>(null);
+  const [decreaseAmount, setDecreaseAmount] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    defaultPrice: 0
+    defaultPrice: 0,
+    currentQty: 0,
+    averageBuyingPrice: 0,
+    lastPrice: 0
   });
 
   const filteredTypes = batteryTypes.filter(type =>
@@ -77,6 +97,7 @@ export const BatteryTypeManagement = () => {
         title: "خطأ في البيانات",
         description: "يرجى إدخال اسم النوع والسعر الافتراضي",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -86,17 +107,21 @@ export const BatteryTypeManagement = () => {
       name: formData.name.trim(),
       description: formData.description.trim() || undefined,
       defaultPrice: formData.defaultPrice,
+      currentQty: formData.currentQty || 0,
+      averageBuyingPrice: formData.averageBuyingPrice || 0,
+      lastPrice: formData.lastPrice || 0,
       isActive: true,
       createdAt: new Date().toISOString().split('T')[0]
     };
 
     setBatteryTypes(prev => [...prev, newType]);
-    setFormData({ name: "", description: "", defaultPrice: 0 });
+    setFormData({ name: "", description: "", defaultPrice: 0, currentQty: 0, averageBuyingPrice: 0, lastPrice: 0 });
     setShowAddDialog(false);
     
     toast({
       title: "تم إضافة النوع",
       description: `تم إضافة ${newType.name} بنجاح`,
+      duration: 2000,
     });
   };
 
@@ -105,7 +130,10 @@ export const BatteryTypeManagement = () => {
     setFormData({
       name: type.name,
       description: type.description || "",
-      defaultPrice: type.defaultPrice
+      defaultPrice: type.defaultPrice,
+      currentQty: type.currentQty,
+      averageBuyingPrice: type.averageBuyingPrice,
+      lastPrice: type.lastPrice
     });
   };
 
@@ -115,6 +143,7 @@ export const BatteryTypeManagement = () => {
         title: "خطأ في البيانات",
         description: "يرجى إدخال اسم النوع والسعر الافتراضي",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -124,16 +153,60 @@ export const BatteryTypeManagement = () => {
         ...type,
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        defaultPrice: formData.defaultPrice
+        defaultPrice: formData.defaultPrice,
+        currentQty: formData.currentQty,
+        averageBuyingPrice: formData.averageBuyingPrice,
+        lastPrice: formData.lastPrice
       } : type
     ));
 
     setEditingType(null);
-    setFormData({ name: "", description: "", defaultPrice: 0 });
+    setFormData({ name: "", description: "", defaultPrice: 0, currentQty: 0, averageBuyingPrice: 0, lastPrice: 0 });
     
     toast({
       title: "تم تحديث النوع",
       description: "تم تحديث بيانات النوع بنجاح",
+      duration: 2000,
+    });
+  };
+
+  const handleDecreaseQuantity = () => {
+    const amount = parseInt(decreaseAmount);
+    if (!amount || amount <= 0) {
+      toast({
+        title: "خطأ في الكمية",
+        description: "يرجى إدخال كمية صحيحة",
+        variant: "destructive",
+        duration: 2000,
+      });
+      return;
+    }
+
+    const typeToUpdate = batteryTypes.find(t => t.id === showDecreaseDialog);
+    if (!typeToUpdate || amount > typeToUpdate.currentQty) {
+      toast({
+        title: "خطأ في الكمية",
+        description: "الكمية المطلوبة أكبر من الكمية المتاحة",
+        variant: "destructive",
+        duration: 2000,
+      });
+      return;
+    }
+
+    setBatteryTypes(prev => prev.map(type => 
+      type.id === showDecreaseDialog ? {
+        ...type,
+        currentQty: type.currentQty - amount
+      } : type
+    ));
+
+    setShowDecreaseDialog(null);
+    setDecreaseAmount("");
+    
+    toast({
+      title: "تم تقليل الكمية",
+      description: `تم تقليل ${amount} كيلو من ${typeToUpdate?.name}`,
+      duration: 2000,
     });
   };
 
@@ -142,6 +215,7 @@ export const BatteryTypeManagement = () => {
     toast({
       title: "تم حذف النوع",
       description: "تم حذف نوع البطارية بنجاح",
+      duration: 2000,
     });
   };
 
@@ -154,12 +228,13 @@ export const BatteryTypeManagement = () => {
     toast({
       title: type?.isActive ? "تم إيقاف النوع" : "تم تفعيل النوع",
       description: type?.isActive ? "تم إيقاف نوع البطارية" : "تم تفعيل نوع البطارية",
+      duration: 2000,
     });
   };
 
   const AddEditDialog = ({ isEdit = false }: { isEdit?: boolean }) => (
     <Dialog open={isEdit ? !!editingType : showAddDialog} onOpenChange={isEdit ? () => setEditingType(null) : setShowAddDialog}>
-      <DialogContent dir="rtl">
+      <DialogContent dir="rtl" className="max-w-md">
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
             {isEdit ? "تعديل نوع البطارية" : "إضافة نوع بطارية جديد"}
@@ -196,19 +271,67 @@ export const BatteryTypeManagement = () => {
             />
           </div>
 
-          <div>
-            <Label htmlFor="defaultPrice" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              السعر الافتراضي (ريال/كيلو)
-            </Label>
-            <Input
-              id="defaultPrice"
-              type="number"
-              value={formData.defaultPrice}
-              onChange={(e) => setFormData(prev => ({ ...prev, defaultPrice: Number(e.target.value) }))}
-              placeholder="0"
-              min="0"
-              step="0.5"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="defaultPrice" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                السعر الافتراضي
+              </Label>
+              <Input
+                id="defaultPrice"
+                type="number"
+                value={formData.defaultPrice}
+                onChange={(e) => setFormData(prev => ({ ...prev, defaultPrice: Number(e.target.value) }))}
+                placeholder="0"
+                min="0"
+                step="0.5"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="currentQty" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                الكمية الحالية
+              </Label>
+              <Input
+                id="currentQty"
+                type="number"
+                value={formData.currentQty}
+                onChange={(e) => setFormData(prev => ({ ...prev, currentQty: Number(e.target.value) }))}
+                placeholder="0"
+                min="0"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="avgBuyingPrice" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                متوسط سعر الشراء
+              </Label>
+              <Input
+                id="avgBuyingPrice"
+                type="number"
+                value={formData.averageBuyingPrice}
+                onChange={(e) => setFormData(prev => ({ ...prev, averageBuyingPrice: Number(e.target.value) }))}
+                placeholder="0"
+                min="0"
+                step="0.5"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="lastPrice" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                آخر سعر شراء
+              </Label>
+              <Input
+                id="lastPrice"
+                type="number"
+                value={formData.lastPrice}
+                onChange={(e) => setFormData(prev => ({ ...prev, lastPrice: Number(e.target.value) }))}
+                placeholder="0"
+                min="0"
+                step="0.5"
+              />
+            </div>
           </div>
 
           <div className="flex gap-2 flex-row-reverse pt-4">
@@ -226,7 +349,7 @@ export const BatteryTypeManagement = () => {
                 } else {
                   setShowAddDialog(false);
                 }
-                setFormData({ name: "", description: "", defaultPrice: 0 });
+                setFormData({ name: "", description: "", defaultPrice: 0, currentQty: 0, averageBuyingPrice: 0, lastPrice: 0 });
               }}
               variant="outline"
               style={{ fontFamily: 'Tajawal, sans-serif' }}
@@ -325,6 +448,11 @@ export const BatteryTypeManagement = () => {
                       <Badge variant={type.isActive ? "default" : "secondary"} className="text-xs">
                         {type.isActive ? "نشط" : "غير نشط"}
                       </Badge>
+                      {type.currentQty <= 10 && (
+                        <Badge variant="destructive" className="text-xs">
+                          مخزون منخفض
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -335,14 +463,54 @@ export const BatteryTypeManagement = () => {
                   </p>
                 )}
 
+                {/* Current Quantity */}
                 <div className="bg-blue-50 rounded p-3">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-blue-600">
-                      {type.defaultPrice} ريال
+                      {type.currentQty} كيلو
                     </span>
-                    <span className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      السعر الافتراضي
-                    </span>
+                    <div className="flex items-center gap-1 flex-row-reverse">
+                      <Package className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        الكمية الحالية
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing Info */}
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="bg-green-50 rounded p-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-green-600">
+                        {type.defaultPrice} ريال
+                      </span>
+                      <span className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        السعر الافتراضي
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-orange-50 rounded p-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-orange-600">
+                        {type.averageBuyingPrice} ريال
+                      </span>
+                      <span className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        متوسط سعر الشراء
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-purple-50 rounded p-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-purple-600">
+                        {type.lastPrice} ريال
+                      </span>
+                      <span className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        آخر سعر شراء
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -368,6 +536,19 @@ export const BatteryTypeManagement = () => {
                     {type.isActive ? "إيقاف" : "تفعيل"}
                   </Button>
                 </div>
+
+                {/* Decrease Quantity Button */}
+                <Button
+                  onClick={() => setShowDecreaseDialog(type.id)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full flex items-center gap-2 flex-row-reverse text-xs border-orange-300 text-orange-600 hover:bg-orange-50"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  disabled={type.currentQty <= 0}
+                >
+                  <Minus className="w-3 h-3" />
+                  تقليل الكمية
+                </Button>
 
                 <Button
                   onClick={() => handleDeleteType(type.id)}
@@ -401,6 +582,53 @@ export const BatteryTypeManagement = () => {
       
       {/* Edit Dialog */}
       {editingType && <AddEditDialog isEdit />}
+
+      {/* Decrease Quantity Dialog */}
+      <Dialog open={!!showDecreaseDialog} onOpenChange={() => setShowDecreaseDialog(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              تقليل كمية البطارية
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="decreaseAmount" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                الكمية المباعة (كيلو)
+              </Label>
+              <Input
+                id="decreaseAmount"
+                type="number"
+                value={decreaseAmount}
+                onChange={(e) => setDecreaseAmount(e.target.value)}
+                placeholder="أدخل الكمية المباعة"
+                min="1"
+                className="text-right"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            </div>
+            <div className="flex gap-2 flex-row-reverse">
+              <Button
+                onClick={handleDecreaseQuantity}
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              >
+                <TrendingDown className="w-4 h-4 mr-2" />
+                تقليل الكمية
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowDecreaseDialog(null);
+                  setDecreaseAmount("");
+                }}
+                variant="outline"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              >
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

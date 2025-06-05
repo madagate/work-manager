@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Search, MessageCircle, Phone, Calendar, Filter, User, Package, DollarSign, Edit3, Save, X, Ban } from "lucide-react";
+import { Users, Search, MessageCircle, Phone, Calendar, Filter, User, Package, DollarSign, Edit3, Save, X, Ban, BarChart } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { CustomerDetailsDialog } from "@/components/CustomerDetailsDialog";
 
 interface Purchase {
   id: string;
@@ -144,6 +144,8 @@ const CustomerFollowUp = () => {
   const [lastMessageFilter, setLastMessageFilter] = useState("all");
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
 
   // Helper functions
   const getDaysSinceLastPurchase = (lastPurchase: string) => {
@@ -202,6 +204,7 @@ const CustomerFollowUp = () => {
     toast({
       title: "تم إرسال الرسالة",
       description: `تم إرسال رسالة واتساب إلى ${customer.name}`,
+      duration: 2000,
     });
   };
 
@@ -213,6 +216,7 @@ const CustomerFollowUp = () => {
     toast({
       title: "تم حفظ الملاحظة",
       description: "تم حفظ ملاحظة العميل بنجاح",
+      duration: 2000,
     });
   };
 
@@ -229,7 +233,13 @@ const CustomerFollowUp = () => {
     toast({
       title: customer?.isBlocked ? "تم إلغاء حظر العميل" : "تم حظر العميل",
       description: customer?.isBlocked ? "تم إلغاء حظر العميل بنجاح" : "تم حظر العميل بنجاح",
+      duration: 2000,
     });
+  };
+
+  const showCustomerStatistics = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowCustomerDetails(true);
   };
 
   return (
@@ -522,6 +532,16 @@ const CustomerFollowUp = () => {
 
                     {/* Action Buttons */}
                     <div className="space-y-2">
+                      {/* Customer Statistics Button */}
+                      <Button
+                        onClick={() => showCustomerStatistics(customer)}
+                        className="w-full flex items-center gap-2 flex-row-reverse text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white"
+                        style={{ fontFamily: 'Tajawal, sans-serif' }}
+                      >
+                        <BarChart className="w-3 h-3 sm:w-4 sm:h-4" />
+                        إحصائيات العميل
+                      </Button>
+
                       {/* WhatsApp Button */}
                       <Button
                         onClick={() => sendWhatsAppMessage(customer)}
@@ -602,6 +622,13 @@ const CustomerFollowUp = () => {
           </Card>
         )}
       </div>
+
+      {/* Customer Details Dialog */}
+      <CustomerDetailsDialog
+        open={showCustomerDetails}
+        onClose={() => setShowCustomerDetails(false)}
+        customer={selectedCustomer}
+      />
     </div>
   );
 };

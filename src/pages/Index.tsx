@@ -1,12 +1,11 @@
 
 import { useState, useEffect } from "react";
 import { DailyPurchases } from "@/components/DailyPurchases";
-import { CustomerManagement } from "@/components/CustomerManagement";
 import { StickyNotes } from "@/components/StickyNotes";
 import { StatisticsPage } from "@/components/StatisticsPage";
 import { BatteryTypeManagement } from "@/components/BatteryTypeManagement";
 import { Navigation } from "@/components/Navigation";
-import { Calendar, Users, StickyNote, BarChart, MessageCircle, Battery, Printer } from "lucide-react";
+import { Calendar, StickyNote, BarChart, MessageCircle, Battery, Printer } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import CustomerFollowUp from "./CustomerFollowUp";
@@ -34,7 +33,6 @@ const Index = () => {
   const getTabText = (key: string) => {
     const texts = {
       daily: { ar: "المشتريات اليومية", en: "Daily Purchases" },
-      customers: { ar: "إدارة العملاء", en: "Customer Management" },
       followup: { ar: "متابعة العملاء", en: "Customer Follow-up" },
       battery: { ar: "أنواع البطاريات", en: "Battery Types" },
       notes: { ar: "الملاحظات", en: "Notes" },
@@ -79,7 +77,7 @@ const Index = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" dir={isRTL ? "rtl" : "ltr"}>
-          <TabsList className="grid w-full grid-cols-6 mb-6 sm:mb-8 bg-white shadow-lg overflow-x-auto">
+          <TabsList className="grid w-full grid-cols-5 mb-6 sm:mb-8 bg-white shadow-lg overflow-x-auto">
             <TabsTrigger 
               value="daily" 
               className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}
@@ -87,14 +85,6 @@ const Index = () => {
             >
               <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
               <span className="truncate">{getTabText("daily")}</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="customers" 
-              className={`flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}
-              style={{ fontFamily: 'Tajawal, sans-serif' }}
-            >
-              <Users className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-              <span className="truncate">{getTabText("customers")}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="followup" 
@@ -134,10 +124,6 @@ const Index = () => {
             {/* Move StickyNotes to top of daily purchases */}
             <StickyNotes compact={true} language={language} />
             <DailyPurchases language={language} />
-          </TabsContent>
-
-          <TabsContent value="customers" className="space-y-4 sm:space-y-6">
-            <CustomerManagement />
           </TabsContent>
 
           <TabsContent value="followup" className="space-y-4 sm:space-y-6">
