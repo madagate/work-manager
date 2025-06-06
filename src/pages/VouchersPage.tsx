@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,16 @@ interface Supplier {
   balance: number;
 }
 
+interface PersonWithType extends Customer {
+  type: 'customer';
+}
+
+interface SupplierWithType extends Supplier {
+  type: 'supplier';
+}
+
+type CombinedPerson = PersonWithType | SupplierWithType;
+
 const mockCustomers: Customer[] = [
   { id: "1", customerCode: "C001", name: "أحمد محمد السعدي", phone: "0501234567", balance: 1200 },
   { id: "2", customerCode: "C002", name: "فاطمة علي الأحمد", phone: "0507654321", balance: -500 },
@@ -56,7 +67,7 @@ const paymentMethods = [
 
 const VouchersPage = () => {
   const [voucherType, setVoucherType] = useState<"receipt" | "payment">("receipt");
-  const [selectedPerson, setSelectedPerson] = useState<Customer | Supplier | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<CombinedPerson | null>(null);
   const [amount, setAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [description, setDescription] = useState("");
@@ -64,7 +75,7 @@ const VouchersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Combined customers and suppliers for voucher selection
-  const allPersons = [
+  const allPersons: CombinedPerson[] = [
     ...mockCustomers.map(c => ({ ...c, type: 'customer' as const })),
     ...mockSuppliers.map(s => ({ ...s, type: 'supplier' as const }))
   ];
@@ -72,7 +83,7 @@ const VouchersPage = () => {
   const filteredPersons = allPersons.filter(person =>
     person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     person.phone.includes(searchTerm) ||
-    (person.type === 'customer' ? (person as any).customerCode : (person as any).supplierCode)
+    (person.type === 'customer' ? person.customerCode : person.supplierCode)
       .toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -130,7 +141,7 @@ const VouchersPage = () => {
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full flex items-center gap-2 flex-row-reverse">
           <Search className="w-4 h-4" />
-          {selectedPerson ? selectedPerson.name : "اختر العميل أو المورد"}
+          {selectedPerson ? selectedPerson.name : "ابحث عن عميل أو مورد"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md" dir="rtl">
@@ -170,7 +181,7 @@ const VouchersPage = () => {
                     <p className="text-sm text-gray-600">{person.phone}</p>
                     <div className="flex gap-2 mt-1">
                       <Badge variant="secondary" className="text-xs">
-                        {person.type === 'customer' ? (person as any).customerCode : (person as any).supplierCode}
+                        {person.type === 'customer' ? person.customerCode : person.supplierCode}
                       </Badge>
                       <Badge variant={person.type === 'customer' ? 'default' : 'outline'} className="text-xs">
                         {person.type === 'customer' ? 'عميل' : 'مورد'}
@@ -217,7 +228,7 @@ const VouchersPage = () => {
               {/* Voucher Type */}
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>نوع السند</Label>
-                <Select value={voucherType} onValueChange={setVoucherType}>
+                <Select value={voucherType} onValueChange={(value: "receipt" | "payment") => setVoucherType(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -249,8 +260,8 @@ const VouchersPage = () => {
                         <div className="flex gap-2 mt-1">
                           <Badge variant="secondary" className="text-xs">
                             {selectedPerson.type === 'customer' 
-                              ? (selectedPerson as any).customerCode 
-                              : (selectedPerson as any).supplierCode}
+                              ? selectedPerson.customerCode 
+                              : selectedPerson.supplierCode}
                           </Badge>
                           <Badge variant={selectedPerson.type === 'customer' ? 'default' : 'outline'} className="text-xs">
                             {selectedPerson.type === 'customer' ? 'عميل' : 'مورد'}
