@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,7 @@ interface Supplier {
   name: string;
   phone: string;
   description?: string;
-  lastPurchase: string;
+  lastPurchase?: string;
   totalPurchases: number;
   totalAmount: number;
   averagePrice: number;
@@ -204,7 +203,7 @@ const SupplierFollowUp = () => {
                     <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       آخر توريد
                     </p>
-                    <p className="text-sm font-semibold">{supplier.lastPurchase}</p>
+                    <p className="text-sm font-semibold">{supplier.lastPurchase || "لا يوجد"}</p>
                   </div>
                 </div>
               </CardContent>
@@ -394,7 +393,7 @@ const SupplierFollowUp = () => {
                     </p>
                   )}
                   <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    آخر توريد: {supplier.lastPurchase}
+                    آخر توريد: {supplier.lastPurchase || "لا يوجد"}
                   </p>
                   <p className={`text-xs font-semibold ${supplier.balance >= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
                     الرصيد: {supplier.balance.toLocaleString()} ريال
