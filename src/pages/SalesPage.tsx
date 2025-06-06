@@ -7,31 +7,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { ShoppingCart, Plus, Search, User, CreditCard, Banknote, Smartphone, Calendar, Printer, FileText } from "lucide-react";
+import { ShoppingCart, Plus, Search, CreditCard, Banknote, Smartphone, Calendar, Printer, FileText, Edit } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface SaleItem {
-  id: string;
-  batteryType: string;
-  quantity: number;
-  price: number;
-  total: number;
-}
-
-interface Sale {
-  id: string;
-  invoiceNumber: string;
-  date: string;
-  customerId: string;
-  customerName: string;
-  items: SaleItem[];
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total: number;
-  paymentMethod: string;
-  status: string;
-}
+import { Sale, SaleItem } from "@/types/sales";
+import { printInvoice } from "@/utils/printUtils";
+import { addTransactionToCustomer, updateCustomerBalance } from "@/utils/accountUtils";
 
 interface Customer {
   id: string;
@@ -71,7 +51,8 @@ const SalesPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [searchTerm, setSearchTerm] = useState("");
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
-  const [vatEnabled, setVatEnabled] = useState(false); // VAT is disabled by default
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
   const filteredCustomers = mockCustomers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -113,11 +94,62 @@ const SalesPage = () => {
 
   const calculateTax = () => {
     if (!vatEnabled) return 0;
-    return Math.round(calculateSubtotal() * 0.15); // 15% VAT only if enabled
+    return Math.round(calculateSubtotal() * 0.15);
   };
 
   const calculateTotal = () => {
     return calculateSubtotal() + calculateTax() - discount;
+  };
+
+  const handlePrintInvoice = (sale: Sale) => {
+    printInvoice(sale);
+  };
+
+  const editSale = (sale: Sale) => {
+    setEditingSale(sale);
+    setSelectedCustomer(mockCustomers.find(c => c.id === sale.customerId) || null);
+    setSaleItems([...sale.items]);
+    setDiscount(sale.discount);
+    setPaymentMethod(sale.paymentMethod);
+    setVatEnabled(sale.tax > 0);
+  };
+
+  const updateSale = () => {
+    if (!editingSale || !selectedCustomer) return;
+
+    const updatedSale: Sale = {
+      ...editingSale,
+      customerId: selectedCustomer.id,
+      customerName: selectedCustomer.name,
+      items: [...saleItems],
+      subtotal: calculateSubtotal(),
+      discount,
+      tax: calculateTax(),
+      total: calculateTotal(),
+      paymentMethod,
+    };
+
+    setRecentSales(recentSales.map(sale => 
+      sale.id === editingSale.id ? updatedSale : sale
+    ));
+
+    toast({
+      title: "تم تحديث الفاتورة",
+      description: `تم تحديث فاتورة رقم ${editingSale.invoiceNumber} بنجاح`,
+      duration: 2000,
+    });
+
+    // Reset form
+    setEditingSale(null);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setSelectedCustomer(null);
+    setSaleItems([{ id: "1", batteryType: "بطاريات عادية", quantity: 0, price: 0, total: 0 }]);
+    setDiscount(0);
+    setPaymentMethod("cash");
+    setVatEnabled(false);
   };
 
   const generateInvoice = () => {
@@ -157,8 +189,21 @@ const SalesPage = () => {
       status: "completed"
     };
 
+    // Add to recent sales
     setRecentSales([newSale, ...recentSales]);
-    
+
+    // Handle customer balance and account statement for credit sales
+    if (paymentMethod === 'credit') {
+      updateCustomerBalance(selectedCustomer.id, newSale.total, 'add');
+      addTransactionToCustomer(selectedCustomer.id, {
+        date: newSale.date,
+        type: 'sale',
+        description: `فاتورة مبيعات رقم ${invoiceNumber}`,
+        amount: newSale.total,
+        invoiceNumber
+      });
+    }
+
     toast({
       title: "تم إنشاء الفاتورة",
       description: `تم إنشاء فاتورة رقم ${invoiceNumber} بنجاح`,
@@ -166,10 +211,7 @@ const SalesPage = () => {
     });
 
     // Reset form
-    setSelectedCustomer(null);
-    setSaleItems([{ id: "1", batteryType: "بطاريات عادية", quantity: 0, price: 0, total: 0 }]);
-    setDiscount(0);
-    setPaymentMethod("cash");
+    resetForm();
   };
 
   const CustomerSearchDialog = () => (
@@ -241,7 +283,7 @@ const SalesPage = () => {
         <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
           <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-            نظام المبيعات
+            {editingSale ? 'تعديل فاتورة المبيعات' : 'نظام المبيعات'}
           </CardTitle>
         </CardHeader>
       </Card>
@@ -252,7 +294,7 @@ const SalesPage = () => {
           <Card>
             <CardHeader>
               <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                إنشاء فاتورة جديدة
+                {editingSale ? `تعديل فاتورة ${editingSale.invoiceNumber}` : 'إنشاء فاتورة جديدة'}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -391,6 +433,29 @@ const SalesPage = () => {
                   placeholder="0"
                 />
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={editingSale ? updateSale : generateInvoice}
+                  className="flex-1"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                >
+                  {editingSale ? 'تحديث الفاتورة' : 'إنشاء الفاتورة'}
+                </Button>
+                {editingSale && (
+                  <Button
+                    onClick={() => {
+                      setEditingSale(null);
+                      resetForm();
+                    }}
+                    variant="outline"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    إلغاء
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -425,13 +490,13 @@ const SalesPage = () => {
                 </div>
               </div>
               
-              <Button
-                onClick={generateInvoice}
-                className="w-full mt-4"
-                style={{ fontFamily: 'Tajawal, sans-serif' }}
-              >
-                إنشاء الفاتورة
-              </Button>
+              {paymentMethod === 'credit' && (
+                <div className="bg-yellow-50 p-3 rounded border">
+                  <p className="text-sm text-yellow-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    ملاحظة: سيتم إضافة هذا المبلغ لرصيد العميل في حالة البيع الآجل
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -453,12 +518,30 @@ const SalesPage = () => {
                           <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {sale.customerName}
                           </p>
+                          <Badge variant={sale.paymentMethod === 'credit' ? 'destructive' : 'default'} className="text-xs mt-1">
+                            {paymentMethods.find(m => m.value === sale.paymentMethod)?.label}
+                          </Badge>
                         </div>
                         <div className="text-left">
                           <p className="font-bold text-green-600">{sale.total.toLocaleString()} ريال</p>
-                          <Button variant="outline" size="sm" className="mt-1">
-                            <Printer className="w-3 h-3" />
-                          </Button>
+                          <div className="flex gap-1 mt-1">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => handlePrintInvoice(sale)}
+                              title="طباعة"
+                            >
+                              <Printer className="w-3 h-3" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => editSale(sale)}
+                              title="تعديل"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
