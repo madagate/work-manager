@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Receipt, ArrowUp, ArrowDown, Search, Calendar, Banknote, Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Receipt, ArrowUp, ArrowDown, Search, Calendar, Banknote, Plus, User, Truck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Voucher {
@@ -15,20 +16,57 @@ interface Voucher {
   voucherNumber: string;
   type: "receipt" | "payment";
   date: string;
-  customerName: string;
+  personName: string;
+  personType: "customer" | "supplier";
   amount: number;
   description: string;
   paymentMethod: string;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  balance: number;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  phone: string;
+  balance: number;
+}
+
+// Mock data
+const mockCustomers: Customer[] = [
+  { id: "1", name: "أحمد محمد", phone: "0501234567", balance: 1500 },
+  { id: "2", name: "فاطمة علي", phone: "0507654321", balance: -800 },
+  { id: "3", name: "محمد السعد", phone: "0555123456", balance: 2200 }
+];
+
+const mockSuppliers: Supplier[] = [
+  { id: "1", name: "مورد البطاريات الذهبية", phone: "0501234567", balance: -1200 },
+  { id: "2", name: "شركة البطاريات المتطورة", phone: "0507654321", balance: 800 }
+];
+
 const VouchersPage = () => {
   const [voucherType, setVoucherType] = useState<"receipt" | "payment">("receipt");
-  const [customerName, setCustomerName] = useState("");
+  const [personType, setPersonType] = useState<"customer" | "supplier">("customer");
+  const [selectedPersonId, setSelectedPersonId] = useState("");
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const getPersonsList = () => {
+    return personType === "customer" ? mockCustomers : mockSuppliers;
+  };
+
+  const getSelectedPerson = () => {
+    const list = getPersonsList();
+    return list.find(person => person.id === selectedPersonId);
+  };
 
   const generateVoucherNumber = (type: "receipt" | "payment") => {
     const prefix = type === "receipt" ? "REC" : "PAY";
@@ -36,8 +74,51 @@ const VouchersPage = () => {
     return `${prefix}-${timestamp}`;
   };
 
+  const PersonSelectionDialog = () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+          {selectedPersonId ? getSelectedPerson()?.name : `اختيار ${personType === "customer" ? "عميل" : "مورد"}`}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            اختيار {personType === "customer" ? "عميل" : "مورد"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {getPersonsList().map(person => (
+            <div
+              key={person.id}
+              onClick={() => setSelectedPersonId(person.id)}
+              className="p-3 border rounded cursor-pointer hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {person.name}
+                  </p>
+                  <p className="text-sm text-gray-600">{person.phone}</p>
+                </div>
+                <div className="text-left">
+                  <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    الرصيد
+                  </p>
+                  <p className={`text-sm font-bold ${person.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {person.balance.toLocaleString()} ريال
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   const createVoucher = () => {
-    if (!customerName.trim() || !amount || !description.trim()) {
+    if (!selectedPersonId || !amount || !description.trim()) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع الحقول المطلوبة",
@@ -47,12 +128,16 @@ const VouchersPage = () => {
       return;
     }
 
+    const selectedPerson = getSelectedPerson();
+    if (!selectedPerson) return;
+
     const newVoucher: Voucher = {
       id: Date.now().toString(),
       voucherNumber: generateVoucherNumber(voucherType),
       type: voucherType,
       date: new Date().toISOString().split('T')[0],
-      customerName: customerName.trim(),
+      personName: selectedPerson.name,
+      personType,
       amount,
       description: description.trim(),
       paymentMethod
@@ -67,14 +152,14 @@ const VouchersPage = () => {
     });
 
     // Reset form
-    setCustomerName("");
+    setSelectedPersonId("");
     setAmount(0);
     setDescription("");
     setPaymentMethod("cash");
   };
 
   const filteredVouchers = vouchers.filter(voucher =>
-    voucher.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    voucher.personName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     voucher.voucherNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     voucher.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -166,17 +251,52 @@ const VouchersPage = () => {
                 </div>
               </div>
 
-              {/* Customer Name */}
+              {/* Person Type */}
+              <div>
+                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>نوع الشخص</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <Button
+                    variant={personType === "customer" ? "default" : "outline"}
+                    onClick={() => {
+                      setPersonType("customer");
+                      setSelectedPersonId("");
+                    }}
+                    className="flex items-center gap-2"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <User className="w-4 h-4" />
+                    عميل
+                  </Button>
+                  <Button
+                    variant={personType === "supplier" ? "default" : "outline"}
+                    onClick={() => {
+                      setPersonType("supplier");
+                      setSelectedPersonId("");
+                    }}
+                    className="flex items-center gap-2"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <Truck className="w-4 h-4" />
+                    مورد
+                  </Button>
+                </div>
+              </div>
+
+              {/* Person Selection */}
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  {voucherType === "receipt" ? "اسم العميل" : "اسم المستفيد"}
+                  {personType === "customer" ? "العميل" : "المورد"}
                 </Label>
-                <Input
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder={voucherType === "receipt" ? "أدخل اسم العميل" : "أدخل اسم المستفيد"}
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                />
+                <div className="mt-2">
+                  <PersonSelectionDialog />
+                  {selectedPersonId && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded">
+                      <p className="text-sm font-semibold text-blue-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        الرصيد الحالي: {getSelectedPerson()?.balance.toLocaleString()} ريال
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Amount */}
@@ -274,9 +394,17 @@ const VouchersPage = () => {
                             <Badge variant={voucher.type === "receipt" ? "default" : "destructive"}>
                               {voucher.type === "receipt" ? "قبض" : "صرف"}
                             </Badge>
+                            <Badge variant="outline" className="flex items-center gap-1">
+                              {voucher.personType === "customer" ? (
+                                <User className="w-3 h-3" />
+                              ) : (
+                                <Truck className="w-3 h-3" />
+                              )}
+                              {voucher.personType === "customer" ? "عميل" : "مورد"}
+                            </Badge>
                           </div>
                           <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {voucher.customerName}
+                            {voucher.personName}
                           </p>
                           <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {voucher.description}
