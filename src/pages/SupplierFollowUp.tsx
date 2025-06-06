@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,6 +40,7 @@ interface Supplier {
   lastMessageSent?: string;
   last2Quantities?: number[];
   last2Prices?: number[];
+  last2BatteryTypes?: string[];
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -59,18 +59,29 @@ const mockSuppliers: Supplier[] = [
     notes: "مورد مميز، توريدات منتظمة كل شهر",
     messageSent: true,
     lastMessageSent: "2024-01-10",
-    last2Quantities: [10, 8],
-    last2Prices: [25, 27],
+    last2Quantities: [12, 8],
+    last2Prices: [25, 30],
+    last2BatteryTypes: ["بطاريات عادية", "بطاريات جافة"],
     purchases: [
       {
         id: "p1",
         date: "2024-01-15",
         batteryType: "بطاريات عادية",
-        quantity: 10,
+        quantity: 12,
         pricePerKg: 25,
-        total: 250,
+        total: 300,
         discount: 0,
-        finalTotal: 250
+        finalTotal: 300
+      },
+      {
+        id: "p2",
+        date: "2024-01-10",
+        batteryType: "بطاريات جافة",
+        quantity: 8,
+        pricePerKg: 30,
+        total: 240,
+        discount: 0,
+        finalTotal: 240
       }
     ]
   },
@@ -87,8 +98,9 @@ const mockSuppliers: Supplier[] = [
     balance: 800,
     notes: "يوفر البطاريات اليابانية عالية الجودة",
     messageSent: false,
-    last2Quantities: [12, 6],
-    last2Prices: [30, 28],
+    last2Quantities: [10, 6],
+    last2Prices: [28, 32],
+    last2BatteryTypes: ["بطاريات زجاج", "بطاريات تعبئة"],
     purchases: []
   }
 ];
@@ -399,21 +411,65 @@ const SupplierFollowUp = () => {
                 {/* Last 2 Purchases Comparison */}
                 {supplier.last2Quantities && supplier.last2Quantities.length >= 2 && (
                   <div className="bg-blue-50 rounded p-2">
-                    <p className="text-xs text-center text-blue-700 font-semibold mb-1" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      مقارنة آخر عمليتين
+                    <p className="text-xs text-center text-blue-700 font-semibold mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      آخر عمليتي شراء
                     </p>
-                    <div className="grid grid-cols-2 gap-1 text-xs">
-                      <div className="text-center">
-                        <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية</p>
-                        <p className={`font-semibold ${supplier.last2Quantities[0] > supplier.last2Quantities[1] ? 'text-green-600' : 'text-red-600'}`}>
-                          {supplier.last2Quantities[0]} vs {supplier.last2Quantities[1]}
-                        </p>
+                    <div className="space-y-2">
+                      <div className="bg-white rounded p-2 border border-blue-200">
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <div>
+                            <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>الصنف:</p>
+                            <p className="font-semibold text-blue-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                              {supplier.last2BatteryTypes?.[0] || "غير محدد"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية:</p>
+                            <p className="font-semibold">{supplier.last2Quantities[0]} كيلو</p>
+                          </div>
+                        </div>
+                        <div className="mt-1">
+                          <p className="text-gray-600 text-xs" style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر:</p>
+                          <p className="font-semibold text-green-600">{supplier.last2Prices![0]} ريال</p>
+                        </div>
                       </div>
-                      <div className="text-center">
-                        <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر</p>
-                        <p className={`font-semibold ${supplier.last2Prices![0] > supplier.last2Prices![1] ? 'text-red-600' : 'text-green-600'}`}>
-                          {supplier.last2Prices![0]} vs {supplier.last2Prices![1]}
-                        </p>
+                      
+                      <div className="bg-white rounded p-2 border border-blue-200">
+                        <div className="grid grid-cols-2 gap-1 text-xs">
+                          <div>
+                            <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>الصنف:</p>
+                            <p className="font-semibold text-blue-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                              {supplier.last2BatteryTypes?.[1] || "غير محدد"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية:</p>
+                            <p className="font-semibold">{supplier.last2Quantities[1]} كيلو</p>
+                          </div>
+                        </div>
+                        <div className="mt-1">
+                          <p className="text-gray-600 text-xs" style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر:</p>
+                          <p className="font-semibold text-green-600">{supplier.last2Prices![1]} ريال</p>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-yellow-50 rounded p-2 mt-2">
+                        <div className="grid grid-cols-2 gap-1 text-xs text-center">
+                          <div>
+                            <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>تغيير الكمية</p>
+                            <p className={`font-semibold ${supplier.last2Quantities[0] > supplier.last2Quantities[1] ? 'text-green-600' : 'text-red-600'}`}>
+                              {supplier.last2Quantities[0] > supplier.last2Quantities[1] ? '↗' : '↘'} 
+                              {Math.abs(supplier.last2Quantities[0] - supplier.last2Quantities[1])}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>تغيير السعر</p>
+                            <p className={`font-semibold ${supplier.last2Prices![0] > supplier.last2Prices![1] ? 'text-red-600' : 'text-green-600'}`}>
+                              {supplier.last2Prices![0] > supplier.last2Prices![1] ? '↗' : '↘'} 
+                              {Math.abs(supplier.last2Prices![0] - supplier.last2Prices![1])}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

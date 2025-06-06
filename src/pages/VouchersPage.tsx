@@ -1,30 +1,29 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Receipt, ArrowUp, ArrowDown, Search, Calendar, Banknote, Plus, User, Truck } from "lucide-react";
+import { Receipt, CreditCard, Plus, Search, User, FileText, Filter, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Voucher {
   id: string;
   voucherNumber: string;
-  type: "receipt" | "payment";
   date: string;
+  personId: string;
   personName: string;
-  personType: "customer" | "supplier";
+  type: "receipt" | "payment";
   amount: number;
-  description: string;
   paymentMethod: string;
+  description: string;
 }
 
 interface Customer {
   id: string;
+  customerCode: string;
   name: string;
   phone: string;
   balance: number;
@@ -32,193 +31,182 @@ interface Customer {
 
 interface Supplier {
   id: string;
+  supplierCode: string;
   name: string;
   phone: string;
   balance: number;
 }
 
-// Mock data
 const mockCustomers: Customer[] = [
-  { id: "1", name: "أحمد محمد", phone: "0501234567", balance: 1500 },
-  { id: "2", name: "فاطمة علي", phone: "0507654321", balance: -800 },
-  { id: "3", name: "محمد السعد", phone: "0555123456", balance: 2200 }
+  { id: "1", customerCode: "C001", name: "أحمد محمد السعدي", phone: "0501234567", balance: 1200 },
+  { id: "2", customerCode: "C002", name: "فاطمة علي الأحمد", phone: "0507654321", balance: -500 },
+  { id: "3", customerCode: "C003", name: "محمد عبدالله الحربي", phone: "0502345678", balance: 0 },
 ];
 
 const mockSuppliers: Supplier[] = [
-  { id: "1", name: "مورد البطاريات الذهبية", phone: "0501234567", balance: -1200 },
-  { id: "2", name: "شركة البطاريات المتطورة", phone: "0507654321", balance: 800 }
+  { id: "4", supplierCode: "S001", name: "مورد البطاريات", phone: "0508888888", balance: 500 },
+  { id: "5", supplierCode: "S002", name: "شركة التوريدات", phone: "0509999999", balance: -200 },
+];
+
+const paymentMethods = [
+  { value: "cash", label: "نقداً", icon: CreditCard },
+  { value: "transfer", label: "تحويل بنكي", icon: CreditCard },
+  { value: "online", label: "مدفوعات الكترونية", icon: CreditCard },
 ];
 
 const VouchersPage = () => {
   const [voucherType, setVoucherType] = useState<"receipt" | "payment">("receipt");
-  const [personType, setPersonType] = useState<"customer" | "supplier">("customer");
-  const [selectedPersonId, setSelectedPersonId] = useState("");
+  const [selectedPerson, setSelectedPerson] = useState<Customer | Supplier | null>(null);
   const [amount, setAmount] = useState(0);
-  const [description, setDescription] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [description, setDescription] = useState("");
+  const [recentVouchers, setRecentVouchers] = useState<Voucher[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const getPersonsList = () => {
-    return personType === "customer" ? mockCustomers : mockSuppliers;
-  };
+  // Combined customers and suppliers for voucher selection
+  const allPersons = [
+    ...mockCustomers.map(c => ({ ...c, type: 'customer' as const })),
+    ...mockSuppliers.map(s => ({ ...s, type: 'supplier' as const }))
+  ];
 
-  const getSelectedPerson = () => {
-    const list = getPersonsList();
-    return list.find(person => person.id === selectedPersonId);
-  };
-
-  const generateVoucherNumber = (type: "receipt" | "payment") => {
-    const prefix = type === "receipt" ? "REC" : "PAY";
-    const timestamp = Date.now();
-    return `${prefix}-${timestamp}`;
-  };
-
-  const PersonSelectionDialog = () => (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-          {selectedPersonId ? getSelectedPerson()?.name : `اختيار ${personType === "customer" ? "عميل" : "مورد"}`}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md" dir="rtl">
-        <DialogHeader>
-          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            اختيار {personType === "customer" ? "عميل" : "مورد"}
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          {getPersonsList().map(person => (
-            <div
-              key={person.id}
-              onClick={() => setSelectedPersonId(person.id)}
-              className="p-3 border rounded cursor-pointer hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {person.name}
-                  </p>
-                  <p className="text-sm text-gray-600">{person.phone}</p>
-                </div>
-                <div className="text-left">
-                  <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    الرصيد
-                  </p>
-                  <p className={`text-sm font-bold ${person.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {person.balance.toLocaleString()} ريال
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </DialogContent>
-    </Dialog>
+  const filteredPersons = allPersons.filter(person =>
+    person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    person.phone.includes(searchTerm) ||
+    (person.type === 'customer' ? (person as any).customerCode : (person as any).supplierCode)
+      .toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const createVoucher = () => {
-    if (!selectedPersonId || !amount || !description.trim()) {
+  const generateVoucher = () => {
+    if (!selectedPerson) {
       toast({
         title: "خطأ",
-        description: "يرجى ملء جميع الحقول المطلوبة",
+        description: "يرجى اختيار العميل أو المورد أولاً",
         variant: "destructive",
         duration: 2000,
       });
       return;
     }
 
-    const selectedPerson = getSelectedPerson();
-    if (!selectedPerson) return;
+    if (!amount) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال المبلغ",
+        variant: "destructive",
+        duration: 2000,
+      });
+      return;
+    }
 
+    const voucherNumber = `V-${Date.now()}`;
     const newVoucher: Voucher = {
       id: Date.now().toString(),
-      voucherNumber: generateVoucherNumber(voucherType),
-      type: voucherType,
+      voucherNumber,
       date: new Date().toISOString().split('T')[0],
+      personId: selectedPerson.id,
       personName: selectedPerson.name,
-      personType,
+      type: voucherType,
       amount,
-      description: description.trim(),
-      paymentMethod
+      paymentMethod,
+      description,
     };
 
-    setVouchers([newVoucher, ...vouchers]);
-    
+    setRecentVouchers([newVoucher, ...recentVouchers]);
+
     toast({
       title: "تم إنشاء السند",
-      description: `تم إنشاء ${voucherType === "receipt" ? "سند قبض" : "سند صرف"} رقم ${newVoucher.voucherNumber}`,
+      description: `تم إنشاء سند رقم ${voucherNumber} بنجاح`,
       duration: 2000,
     });
 
     // Reset form
-    setSelectedPersonId("");
+    setSelectedPerson(null);
     setAmount(0);
-    setDescription("");
     setPaymentMethod("cash");
+    setDescription("");
   };
 
-  const filteredVouchers = vouchers.filter(voucher =>
-    voucher.personName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    voucher.voucherNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    voucher.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const PersonSearchDialog = () => (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full flex items-center gap-2 flex-row-reverse">
+          <Search className="w-4 h-4" />
+          {selectedPerson ? selectedPerson.name : "اختر العميل أو المورد"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md" dir="rtl">
+        <DialogHeader>
+          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            اختيار العميل أو المورد
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="ابحث عن عميل أو مورد..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pr-10"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            />
+          </div>
+          
+          <div className="max-h-60 overflow-y-auto space-y-2">
+            {filteredPersons.map(person => (
+              <div
+                key={`${person.type}-${person.id}`}
+                onClick={() => {
+                  setSelectedPerson(person);
+                  setSearchTerm("");
+                }}
+                className="p-3 border rounded cursor-pointer hover:bg-gray-50"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      {person.name}
+                    </p>
+                    <p className="text-sm text-gray-600">{person.phone}</p>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="secondary" className="text-xs">
+                        {person.type === 'customer' ? (person as any).customerCode : (person as any).supplierCode}
+                      </Badge>
+                      <Badge variant={person.type === 'customer' ? 'default' : 'outline'} className="text-xs">
+                        {person.type === 'customer' ? 'عميل' : 'مورد'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="text-left">
+                    <p className={`font-bold ${person.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {person.balance.toLocaleString()} ريال
+                    </p>
+                    <p className="text-xs text-gray-500">الرصيد</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
-
-  const totalReceipts = vouchers.filter(v => v.type === "receipt").reduce((sum, v) => sum + v.amount, 0);
-  const totalPayments = vouchers.filter(v => v.type === "payment").reduce((sum, v) => sum + v.amount, 0);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
           <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             <Receipt className="w-4 h-4 sm:w-5 sm:h-5" />
-            سندات القبض والصرف
+            إدارة السندات
           </CardTitle>
         </CardHeader>
-
-        {/* Statistics */}
-        <CardContent className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <ArrowUp className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-green-600" />
-                <p className="text-lg sm:text-2xl font-bold text-green-600">{totalReceipts.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  إجمالي المقبوضات
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <ArrowDown className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-red-600" />
-                <p className="text-lg sm:text-2xl font-bold text-red-600">{totalPayments.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  إجمالي المدفوعات
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <Banknote className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-blue-600" />
-                <p className={`text-lg sm:text-2xl font-bold ${(totalReceipts - totalPayments) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(totalReceipts - totalPayments).toLocaleString()}
-                </p>
-                <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  صافي النقدية
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Voucher Form */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
@@ -229,74 +217,55 @@ const VouchersPage = () => {
               {/* Voucher Type */}
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>نوع السند</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Button
-                    variant={voucherType === "receipt" ? "default" : "outline"}
-                    onClick={() => setVoucherType("receipt")}
-                    className="flex items-center gap-2"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                    سند قبض
-                  </Button>
-                  <Button
-                    variant={voucherType === "payment" ? "default" : "outline"}
-                    onClick={() => setVoucherType("payment")}
-                    className="flex items-center gap-2"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                    سند صرف
-                  </Button>
-                </div>
-              </div>
-
-              {/* Person Type */}
-              <div>
-                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>نوع الشخص</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Button
-                    variant={personType === "customer" ? "default" : "outline"}
-                    onClick={() => {
-                      setPersonType("customer");
-                      setSelectedPersonId("");
-                    }}
-                    className="flex items-center gap-2"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    <User className="w-4 h-4" />
-                    عميل
-                  </Button>
-                  <Button
-                    variant={personType === "supplier" ? "default" : "outline"}
-                    onClick={() => {
-                      setPersonType("supplier");
-                      setSelectedPersonId("");
-                    }}
-                    className="flex items-center gap-2"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    <Truck className="w-4 h-4" />
-                    مورد
-                  </Button>
-                </div>
+                <Select value={voucherType} onValueChange={setVoucherType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="receipt" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      سند قبض
+                    </SelectItem>
+                    <SelectItem value="payment" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      سند صرف
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Person Selection */}
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  {personType === "customer" ? "العميل" : "المورد"}
+                  {voucherType === 'receipt' ? 'العميل أو المورد (المسدد)' : 'العميل أو المورد (المستلم)'}
                 </Label>
-                <div className="mt-2">
-                  <PersonSelectionDialog />
-                  {selectedPersonId && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded">
-                      <p className="text-sm font-semibold text-blue-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        الرصيد الحالي: {getSelectedPerson()?.balance.toLocaleString()} ريال
-                      </p>
+                <PersonSearchDialog />
+                {selectedPerson && (
+                  <div className="mt-2 p-3 bg-blue-50 rounded border">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                          {selectedPerson.name}
+                        </p>
+                        <p className="text-sm text-gray-600">{selectedPerson.phone}</p>
+                        <div className="flex gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {selectedPerson.type === 'customer' 
+                              ? (selectedPerson as any).customerCode 
+                              : (selectedPerson as any).supplierCode}
+                          </Badge>
+                          <Badge variant={selectedPerson.type === 'customer' ? 'default' : 'outline'} className="text-xs">
+                            {selectedPerson.type === 'customer' ? 'عميل' : 'مورد'}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-left">
+                        <p className={`font-bold ${selectedPerson.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {selectedPerson.balance.toLocaleString()} ريال
+                        </p>
+                        <p className="text-xs text-gray-500">الرصيد الحالي</p>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Amount */}
@@ -313,120 +282,108 @@ const VouchersPage = () => {
               {/* Payment Method */}
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>طريقة الدفع</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash" style={{ fontFamily: 'Tajawal, sans-serif' }}>نقداً</SelectItem>
-                    <SelectItem value="card" style={{ fontFamily: 'Tajawal, sans-serif' }}>بطاقة</SelectItem>
-                    <SelectItem value="transfer" style={{ fontFamily: 'Tajawal, sans-serif' }}>تحويل بنكي</SelectItem>
-                    <SelectItem value="check" style={{ fontFamily: 'Tajawal, sans-serif' }}>شيك</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                  {paymentMethods.map(method => {
+                    const Icon = method.icon;
+                    return (
+                      <Button
+                        key={method.value}
+                        variant={paymentMethod === method.value ? "default" : "outline"}
+                        onClick={() => setPaymentMethod(method.value)}
+                        className="flex items-center gap-2"
+                        style={{ fontFamily: 'Tajawal, sans-serif' }}
+                      >
+                        <Icon className="w-4 h-4" />
+                        {method.label}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Description */}
               <div>
-                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>البيان</Label>
-                <Textarea
+                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>الوصف</Label>
+                <Input
+                  type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="أدخل بيان السند..."
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  rows={3}
+                  placeholder="وصف السند"
                 />
               </div>
-
-              <Button
-                onClick={createVoucher}
-                className="w-full flex items-center gap-2"
-                style={{ fontFamily: 'Tajawal, sans-serif' }}
-              >
-                <Plus className="w-4 h-4" />
-                إنشاء السند
-              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Vouchers List */}
-        <div className="lg:col-span-2">
+        {/* Voucher Summary */}
+        <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span style={{ fontFamily: 'Tajawal, sans-serif' }}>السندات</span>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="ابحث في السندات..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pr-10 w-64"
-                      style={{ fontFamily: 'Tajawal, sans-serif' }}
-                    />
-                  </div>
-                </div>
+              <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                ملخص السند
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              {filteredVouchers.length === 0 ? (
-                <div className="text-center py-8">
-                  <Receipt className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    لا توجد سندات بعد
-                  </p>
-                </div>
-              ) : (
+            <CardContent className="space-y-4">
+              <div className="flex justify-between">
+                <span style={{ fontFamily: 'Tajawal, sans-serif' }}>النوع:</span>
+                <span className="font-bold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {voucherType === "receipt" ? "سند قبض" : "سند صرف"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {voucherType === 'receipt' ? 'المسدد:' : 'المستلم:'}
+                </span>
+                <span className="font-bold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {selectedPerson ? selectedPerson.name : "غير محدد"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{ fontFamily: 'Tajawal, sans-serif' }}>المبلغ:</span>
+                <span className="font-bold text-green-600">{amount.toLocaleString()} ريال</span>
+              </div>
+              <Button
+                onClick={generateVoucher}
+                className="w-full mt-4"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              >
+                إنشاء السند
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Recent Vouchers */}
+          {recentVouchers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  آخر السندات
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-3">
-                  {filteredVouchers.map(voucher => (
-                    <div key={voucher.id} className="border rounded p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            {voucher.type === "receipt" ? (
-                              <ArrowUp className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <ArrowDown className="w-4 h-4 text-red-600" />
-                            )}
-                            <span className="font-semibold">{voucher.voucherNumber}</span>
-                            <Badge variant={voucher.type === "receipt" ? "default" : "destructive"}>
-                              {voucher.type === "receipt" ? "قبض" : "صرف"}
-                            </Badge>
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              {voucher.personType === "customer" ? (
-                                <User className="w-3 h-3" />
-                              ) : (
-                                <Truck className="w-3 h-3" />
-                              )}
-                              {voucher.personType === "customer" ? "عميل" : "مورد"}
-                            </Badge>
-                          </div>
-                          <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {recentVouchers.slice(0, 5).map(voucher => (
+                    <div key={voucher.id} className="p-3 border rounded">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-sm">{voucher.voucherNumber}</p>
+                          <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {voucher.personName}
-                          </p>
-                          <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {voucher.description}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {voucher.date} - {voucher.paymentMethod === "cash" ? "نقداً" : 
-                             voucher.paymentMethod === "card" ? "بطاقة" :
-                             voucher.paymentMethod === "transfer" ? "تحويل" : "شيك"}
                           </p>
                         </div>
                         <div className="text-left">
-                          <p className={`text-xl font-bold ${voucher.type === "receipt" ? 'text-green-600' : 'text-red-600'}`}>
-                            {voucher.type === "payment" ? "-" : "+"}{voucher.amount.toLocaleString()} ريال
-                          </p>
+                          <p className="font-bold text-green-600">{voucher.amount.toLocaleString()} ريال</p>
+                          <Button variant="outline" size="sm" className="mt-1">
+                            <FileText className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

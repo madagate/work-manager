@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +30,7 @@ interface Customer {
   purchases: Purchase[];
   last2Quantities?: number[];
   last2Prices?: number[];
+  last2BatteryTypes?: string[];
 }
 
 interface CustomerDetailsDialogProps {
@@ -101,6 +101,81 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
                 <div className="mt-4 p-3 bg-red-50 rounded-lg">
                   <span className="font-semibold text-red-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>سبب الحظر: </span>
                   <span className="text-red-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.blockReason}</span>
+                </div>
+              )}
+              
+              {/* Last 2 Sales Details */}
+              {customer.last2Quantities && customer.last2Quantities.length >= 2 && (
+                <div className="mt-6">
+                  <h4 className="font-semibold mb-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>آخر عمليتي بيع:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h5 className="font-semibold text-green-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        البيعة الأخيرة
+                      </h5>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>الصنف:</span>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {customer.last2BatteryTypes?.[0] || "غير محدد"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية:</span>
+                          <span className="font-semibold">{customer.last2Quantities[0]} كيلو</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر:</span>
+                          <span className="font-semibold text-blue-600">{customer.last2Prices![0]} ريال</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h5 className="font-semibold text-gray-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                        البيعة السابقة
+                      </h5>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>الصنف:</span>
+                          <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {customer.last2BatteryTypes?.[1] || "غير محدد"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية:</span>
+                          <span className="font-semibold">{customer.last2Quantities[1]} كيلو</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ fontFamily: 'Tajawal, sans-serif' }}>السعر:</span>
+                          <span className="font-semibold text-blue-600">{customer.last2Prices![1]} ريال</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Comparison */}
+                  <div className="mt-4 bg-yellow-50 rounded-lg p-4">
+                    <h5 className="font-semibold text-yellow-800 mb-2" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      مقارنة التغييرات
+                    </h5>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="text-center">
+                        <span className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>تغيير الكمية: </span>
+                        <span className={`font-semibold ${customer.last2Quantities[0] > customer.last2Quantities[1] ? 'text-green-600' : 'text-red-600'}`}>
+                          {customer.last2Quantities[0] > customer.last2Quantities[1] ? '↗' : '↘'} 
+                          {Math.abs(customer.last2Quantities[0] - customer.last2Quantities[1])} كيلو
+                        </span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>تغيير السعر: </span>
+                        <span className={`font-semibold ${customer.last2Prices![0] > customer.last2Prices![1] ? 'text-green-600' : 'text-red-600'}`}>
+                          {customer.last2Prices![0] > customer.last2Prices![1] ? '↗' : '↘'} 
+                          {Math.abs(customer.last2Prices![0] - customer.last2Prices![1])} ريال
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>

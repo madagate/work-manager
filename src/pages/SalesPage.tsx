@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { ShoppingCart, Plus, Search, User, CreditCard, Banknote, Smartphone, Calendar, Printer, FileText } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -71,6 +71,7 @@ const SalesPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [searchTerm, setSearchTerm] = useState("");
   const [recentSales, setRecentSales] = useState<Sale[]>([]);
+  const [vatEnabled, setVatEnabled] = useState(false); // VAT is disabled by default
 
   const filteredCustomers = mockCustomers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,7 +112,8 @@ const SalesPage = () => {
   };
 
   const calculateTax = () => {
-    return Math.round(calculateSubtotal() * 0.15); // 15% VAT
+    if (!vatEnabled) return 0;
+    return Math.round(calculateSubtotal() * 0.15); // 15% VAT only if enabled
   };
 
   const calculateTotal = () => {
@@ -370,6 +372,15 @@ const SalesPage = () => {
                 </div>
               </div>
 
+              {/* VAT Toggle */}
+              <div className="flex items-center justify-between">
+                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>تطبيق ضريبة القيمة المضافة (15%)</Label>
+                <Switch
+                  checked={vatEnabled}
+                  onCheckedChange={setVatEnabled}
+                />
+              </div>
+
               {/* Discount */}
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>الخصم</Label>
@@ -397,10 +408,12 @@ const SalesPage = () => {
                 <span style={{ fontFamily: 'Tajawal, sans-serif' }}>المجموع الفرعي:</span>
                 <span className="font-bold">{calculateSubtotal().toLocaleString()} ريال</span>
               </div>
-              <div className="flex justify-between">
-                <span style={{ fontFamily: 'Tajawal, sans-serif' }}>ضريبة القيمة المضافة (15%):</span>
-                <span className="font-bold">{calculateTax().toLocaleString()} ريال</span>
-              </div>
+              {vatEnabled && (
+                <div className="flex justify-between">
+                  <span style={{ fontFamily: 'Tajawal, sans-serif' }}>ضريبة القيمة المضافة (15%):</span>
+                  <span className="font-bold">{calculateTax().toLocaleString()} ريال</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span style={{ fontFamily: 'Tajawal, sans-serif' }}>الخصم:</span>
                 <span className="font-bold text-red-600">-{discount.toLocaleString()} ريال</span>
