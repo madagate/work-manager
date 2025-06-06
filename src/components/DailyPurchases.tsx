@@ -6,12 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays, Plus, Trash2, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { CustomerSearchDialog } from "./CustomerSearchDialog";
+import { SupplierSearchDialog } from "./SupplierSearchDialog";
 import { DateNavigation } from "./DateNavigation";
 
 interface Purchase {
   id: string;
-  customerName: string;
+  supplierName: string;
   batteryType: string;
   quantity: number;
   price: number;
@@ -38,7 +38,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   const [purchases, setPurchases] = useState<Purchase[]>([
     {
       id: "1",
-      customerName: "",
+      supplierName: "",
       batteryType: "بطاريات عادية",
       quantity: 0,
       price: 0,
@@ -50,9 +50,9 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   ]);
   
   const [focusedCell, setFocusedCell] = useState<{row: number, col: string} | null>(null);
-  const [showCustomerDialog, setShowCustomerDialog] = useState(false);
-  const [selectedRowForCustomer, setSelectedRowForCustomer] = useState<number>(0);
-  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [showSupplierDialog, setShowSupplierDialog] = useState(false);
+  const [selectedRowForSupplier, setSelectedRowForSupplier] = useState<number>(0);
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const tableRef = useRef<HTMLDivElement>(null);
   
   const isRTL = language === "ar";
@@ -75,7 +75,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   const addRow = () => {
     const newPurchase: Purchase = {
       id: Date.now().toString(),
-      customerName: "",
+      supplierName: "",
       batteryType: "بطاريات عادية",
       quantity: 0,
       price: 0,
@@ -102,7 +102,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
     const purchase = purchases[index];
     
     // Validate required fields
-    if (!purchase.customerName || !purchase.quantity || !purchase.price) {
+    if (!purchase.supplierName || !purchase.quantity || !purchase.price) {
       toast({
         title: language === "ar" ? "خطأ" : "Error",
         description: language === "ar" ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill all required fields",
@@ -124,14 +124,14 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
     // Add new row and focus on it
     addRow();
     setTimeout(() => {
-      setFocusedCell({ row: purchases.length, col: 'customerName' });
+      setFocusedCell({ row: purchases.length, col: 'supplierName' });
     }, 100);
   };
 
   const clearAllData = () => {
     setPurchases([{
       id: "1",
-      customerName: "",
+      supplierName: "",
       batteryType: "بطاريات عادية",
       quantity: 0,
       price: 0,
@@ -144,7 +144,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
 
   const handleKeyDown = (e: React.KeyboardEvent, rowIndex: number, field: string) => {
     const totalRows = purchases.length;
-    const fields = ['customerName', 'batteryType', 'quantity', 'price', 'discount', 'save'];
+    const fields = ['supplierName', 'batteryType', 'quantity', 'price', 'discount', 'save'];
     const currentFieldIndex = fields.indexOf(field);
 
     if (e.key === 'Enter' || e.key === 'Tab') {
@@ -181,23 +181,23 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
     }
   };
 
-  const handleCustomerInput = (value: string, rowIndex: number) => {
-    updatePurchase(rowIndex, 'customerName', value);
-    setCustomerSearchTerm(value);
+  const handleSupplierInput = (value: string, rowIndex: number) => {
+    updatePurchase(rowIndex, 'supplierName', value);
+    setSupplierSearchTerm(value);
     
-    // If customer doesn't exist, show dialog after a short delay
+    // If supplier doesn't exist, show dialog after a short delay
     if (value.trim() && value.length > 2) {
       setTimeout(() => {
-        setSelectedRowForCustomer(rowIndex);
-        setShowCustomerDialog(true);
+        setSelectedRowForSupplier(rowIndex);
+        setShowSupplierDialog(true);
       }, 500);
     }
   };
 
-  const handleCustomerSelect = (customer: any) => {
-    updatePurchase(selectedRowForCustomer, 'customerName', customer.name);
-    setShowCustomerDialog(false);
-    setCustomerSearchTerm("");
+  const handleSupplierSelect = (supplier: any) => {
+    updatePurchase(selectedRowForSupplier, 'supplierName', supplier.name);
+    setShowSupplierDialog(false);
+    setSupplierSearchTerm("");
   };
 
   const totalDailyAmount = purchases.reduce((sum, purchase) => sum + purchase.finalTotal, 0);
@@ -245,7 +245,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
         <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
           <CardTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
             <CalendarDays className="w-5 h-5" />
-            {language === "ar" ? "المشتريات اليومية" : "Daily Purchases"}
+            {language === "ar" ? "المشتريات من الموردين" : "Supplier Purchases"}
           </CardTitle>
         </CardHeader>
         
@@ -255,7 +255,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {language === "ar" ? "العميل" : "Customer"}
+                    {language === "ar" ? "المورد" : "Supplier"}
                   </th>
                   <th className={`p-3 font-semibold ${isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: 'Tajawal, sans-serif' }}>
                     {language === "ar" ? "نوع البطارية" : "Battery Type"}
@@ -286,12 +286,12 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
                   <tr key={purchase.id} className={`border-b hover:bg-gray-50 ${purchase.saved ? 'bg-green-50' : ''}`}>
                     <td className="p-2">
                       <Input
-                        id={`${index}-customerName`}
-                        value={purchase.customerName}
-                        onChange={(e) => handleCustomerInput(e.target.value, index)}
-                        onKeyDown={(e) => handleKeyDown(e, index, 'customerName')}
-                        onFocus={() => setFocusedCell({row: index, col: 'customerName'})}
-                        placeholder={language === "ar" ? "ابحث عن عميل..." : "Search customer..."}
+                        id={`${index}-supplierName`}
+                        value={purchase.supplierName}
+                        onChange={(e) => handleSupplierInput(e.target.value, index)}
+                        onKeyDown={(e) => handleKeyDown(e, index, 'supplierName')}
+                        onFocus={() => setFocusedCell({row: index, col: 'supplierName'})}
+                        placeholder={language === "ar" ? "ابحث عن مورد..." : "Search supplier..."}
                         className={isRTL ? 'text-right' : 'text-left'}
                         style={{ fontFamily: 'Tajawal, sans-serif' }}
                       />
@@ -407,11 +407,11 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
         </CardContent>
       </Card>
 
-      <CustomerSearchDialog
-        open={showCustomerDialog}
-        onClose={() => setShowCustomerDialog(false)}
-        onCustomerSelect={handleCustomerSelect}
-        searchTerm={customerSearchTerm}
+      <SupplierSearchDialog
+        open={showSupplierDialog}
+        onClose={() => setShowSupplierDialog(false)}
+        onSupplierSelect={handleSupplierSelect}
+        searchTerm={supplierSearchTerm}
         language={language}
       />
     </div>
