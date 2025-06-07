@@ -19,6 +19,7 @@ interface Customer {
   lastPurchase?: string;
   totalPurchases: number;
   averagePrice: number;
+  totalAmount: number;
   purchases: any[];
   isBlocked?: boolean;
   blockReason?: string;
@@ -41,6 +42,7 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-15",
     totalPurchases: 15,
     averagePrice: 125.50,
+    totalAmount: 1882.50,
     purchases: [],
     isBlocked: false,
     messageSent: false,
@@ -58,6 +60,7 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-10",
     totalPurchases: 5,
     averagePrice: 85.00,
+    totalAmount: 425.00,
     purchases: [],
     isBlocked: true,
     blockReason: "تأخر في السداد",
