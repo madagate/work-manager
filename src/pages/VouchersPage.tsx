@@ -442,12 +442,14 @@ const VouchersPage = () => {
         open={showCustomerSearchDialog}
         onClose={() => setShowCustomerSearchDialog(false)}
         onCustomerSelect={handleCustomerSelect}
+        searchTerm=""
       />
 
       <SupplierSearchDialog
         open={showSupplierSearchDialog}
         onClose={() => setShowSupplierSearchDialog(false)}
         onSupplierSelect={handleSupplierSelect}
+        searchTerm=""
       />
 
       <EditVoucherDialog
