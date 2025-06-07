@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { CustomerDetailsDialog } from "@/components/CustomerDetailsDialog";
 import { EditCustomerDialog } from "@/components/EditCustomerDialog";
 
-interface Customer {
+interface CustomerFollowUp {
   id: string;
   customerCode: string;
   name: string;
@@ -31,7 +30,7 @@ interface Customer {
 }
 
 // Mock data
-const mockCustomers: Customer[] = [
+const mockCustomers: CustomerFollowUp[] = [
   {
     id: "1",
     customerCode: "C001",
@@ -73,10 +72,10 @@ const mockCustomers: Customer[] = [
 ];
 
 const CustomerFollowUpPage = () => {
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [customers, setCustomers] = useState<CustomerFollowUp[]>(mockCustomers);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<"all" | "blocked" | "active">("all");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerFollowUp | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
@@ -94,17 +93,17 @@ const CustomerFollowUpPage = () => {
     return searchMatch && typeMatch;
   });
 
-  const handleCustomerSelect = (customer: Customer) => {
+  const handleCustomerSelect = (customer: CustomerFollowUp) => {
     setSelectedCustomer(customer);
     setShowDetailsDialog(true);
   };
 
-  const handleEditCustomer = (customer: Customer) => {
+  const handleEditCustomer = (customer: CustomerFollowUp) => {
     setSelectedCustomer(customer);
     setShowEditDialog(true);
   };
 
-  const handleCustomerUpdated = (updatedCustomer: Customer) => {
+  const handleCustomerUpdated = (updatedCustomer: CustomerFollowUp) => {
     setCustomers(prev => prev.map(customer => 
       customer.id === updatedCustomer.id ? updatedCustomer : customer
     ));
@@ -141,13 +140,13 @@ const CustomerFollowUpPage = () => {
     });
   };
 
-  const getCustomerStatusColor = (customer: Customer) => {
+  const getCustomerStatusColor = (customer: CustomerFollowUp) => {
     if (customer.isBlocked) return "text-red-600";
     if (customer.totalPurchases >= 10) return "text-green-600";
     return "text-yellow-600";
   };
 
-  const getCustomerStatusText = (customer: Customer) => {
+  const getCustomerStatusText = (customer: CustomerFollowUp) => {
     if (customer.isBlocked) return "محظور";
     if (customer.totalPurchases >= 10) return "مميز";
     return "عادي";
