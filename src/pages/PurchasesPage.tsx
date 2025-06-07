@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ShoppingCart, Search, Plus, Calendar, DollarSign, TrendingUp, Users, Edit, Printer, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { SupplierSearchDialog } from "@/components/SupplierSearchDialog";
+import { BatteryTypeSelector } from "@/components/BatteryTypeSelector";
 import { Purchase, PurchaseItem } from "@/types/purchases";
 import { addTransactionToSupplier, removeSupplierTransactionByInvoice } from "@/utils/accountUtils";
 
@@ -39,6 +40,8 @@ const PurchasesPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSupplierDialog, setShowSupplierDialog] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<{ id: string; name: string } | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [newPurchase, setNewPurchase] = useState({
     date: new Date().toISOString().split('T')[0],
     supplierId: "",
@@ -180,6 +183,90 @@ const PurchasesPage = () => {
     });
   };
 
+  const handleEditPurchase = (purchase: Purchase) => {
+    setEditingPurchase(purchase);
+    setShowEditDialog(true);
+  };
+
+  const handlePrintPurchase = (purchase: Purchase) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>فاتورة مشتريات - ${purchase.invoiceNumber}</title>
+          <style>
+            body { font-family: 'Tajawal', Arial, sans-serif; direction: rtl; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .details { margin: 20px 0; }
+            .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+            .items-table th { background-color: #f5f5f5; }
+            .totals { margin-top: 20px; text-align: right; }
+            .total-line { display: flex; justify-content: space-between; margin: 5px 0; }
+            .final-total { font-size: 18px; font-weight: bold; border-top: 2px solid #333; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>فاتورة مشتريات</h1>
+            <h2>رقم الفاتورة: ${purchase.invoiceNumber}</h2>
+          </div>
+          
+          <div class="details">
+            <p><strong>التاريخ:</strong> ${purchase.date}</p>
+            <p><strong>المورد:</strong> ${purchase.supplierName}</p>
+            <p><strong>طريقة الدفع:</strong> ${purchase.paymentMethod}</p>
+          </div>
+          
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>نوع البطارية</th>
+                <th>الكمية</th>
+                <th>السعر</th>
+                <th>المجموع</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${purchase.items.map(item => `
+                <tr>
+                  <td>${item.batteryType}</td>
+                  <td>${item.quantity}</td>
+                  <td>${item.price.toFixed(2)} ريال</td>
+                  <td>${item.total.toFixed(2)} ريال</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="totals">
+            <div class="total-line">
+              <span>المجموع الفرعي:</span>
+              <span>${purchase.subtotal.toFixed(2)} ريال</span>
+            </div>
+            <div class="total-line">
+              <span>الخصم:</span>
+              <span>${((purchase.subtotal * purchase.discount) / 100).toFixed(2)} ريال</span>
+            </div>
+            <div class="total-line">
+              <span>الضريبة (15%):</span>
+              <span>${purchase.tax.toFixed(2)} ريال</span>
+            </div>
+            <div class="total-line final-total">
+              <span>المجموع النهائي:</span>
+              <span>${purchase.total.toFixed(2)} ريال</span>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   const handleDeletePurchase = (purchase: Purchase) => {
     // Remove from purchases list
     setPurchases(prev => prev.filter(p => p.id !== purchase.id));
@@ -254,8 +341,8 @@ const PurchasesPage = () => {
                     onClick={() => setShowSupplierDialog(true)}
                     style={{ fontFamily: 'Tajawal, sans-serif' }}
                   >
-                    <Users className="w-4 h-4 ml-2" />
-                    اختيار
+                    <Search className="w-4 h-4 ml-2" />
+                    بحث
                   </Button>
                 </div>
               </div>
@@ -278,12 +365,14 @@ const PurchasesPage = () => {
             <div className="border-t pt-4">
               <h4 className="font-semibold mb-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>إضافة الأصناف</h4>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                <Input
-                  placeholder="نوع البطارية"
-                  value={currentItem.batteryType}
-                  onChange={(e) => setCurrentItem({ ...currentItem, batteryType: e.target.value })}
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                />
+                <div>
+                  <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>نوع البطارية</Label>
+                  <BatteryTypeSelector
+                    value={currentItem.batteryType}
+                    onChange={(value) => setCurrentItem({ ...currentItem, batteryType: value })}
+                    placeholder="اختر نوع البطارية"
+                  />
+                </div>
                 <Input
                   type="number"
                   placeholder="الكمية"
@@ -437,10 +526,18 @@ const PurchasesPage = () => {
                     </td>
                     <td className="p-3">
                       <div className="flex gap-1">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditPurchase(purchase)}
+                        >
                           <Edit className="w-3 h-3" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handlePrintPurchase(purchase)}
+                        >
                           <Printer className="w-3 h-3" />
                         </Button>
                         <Button
@@ -466,6 +563,27 @@ const PurchasesPage = () => {
         onSupplierSelect={handleSupplierSelect}
         searchTerm=""
       />
+
+      {/* Edit Purchase Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              تعديل فاتورة المشتريات - {editingPurchase?.invoiceNumber}
+            </DialogTitle>
+          </DialogHeader>
+          {editingPurchase && (
+            <div className="space-y-4">
+              <p className="text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                سيتم إضافة ميزة التعديل قريباً
+              </p>
+              <Button onClick={() => setShowEditDialog(false)}>
+                إغلاق
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

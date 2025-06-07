@@ -1,13 +1,18 @@
 
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, Phone, MessageCircle, Ban, CheckCircle, Edit, AlertTriangle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Users, Search, Plus, Edit, Trash2, MessageSquare, Phone, ShoppingCart, DollarSign, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CustomerDetailsDialog } from "@/components/CustomerDetailsDialog";
 import { EditCustomerDialog } from "@/components/EditCustomerDialog";
+import { AddCustomerDialog } from "@/components/AddCustomerDialog";
 
 interface CustomerFollowUp {
   id: string;
@@ -21,6 +26,7 @@ interface CustomerFollowUp {
   averagePrice: number;
   totalAmount: number;
   purchases: any[];
+  balance: number;
   isBlocked?: boolean;
   blockReason?: string;
   messageSent?: boolean;
@@ -30,12 +36,11 @@ interface CustomerFollowUp {
   last2BatteryTypes?: string[];
 }
 
-// Mock data
 const mockCustomers: CustomerFollowUp[] = [
   {
     id: "1",
     customerCode: "C001",
-    name: "أحمد محمد السعيد",
+    name: "أحمد محمد العلي",
     phone: "0501234567",
     description: "عميل مميز",
     notes: "يفضل التوصيل صباحاً",
@@ -44,16 +49,17 @@ const mockCustomers: CustomerFollowUp[] = [
     averagePrice: 125.50,
     totalAmount: 1882.50,
     purchases: [],
+    balance: 250.00,
     isBlocked: false,
     messageSent: false,
-    last2Quantities: [100, 150],
+    last2Quantities: [50, 30],
     last2Prices: [120, 130],
-    last2BatteryTypes: ["AAA", "AA"]
+    last2BatteryTypes: ["AA", "AAA"]
   },
   {
     id: "2",
-    customerCode: "C002", 
-    name: "فاطمة أحمد",
+    customerCode: "C002",
+    name: "فاطمة عبدالله",
     phone: "0507654321",
     description: "عميل جديد",
     notes: "",
@@ -62,41 +68,52 @@ const mockCustomers: CustomerFollowUp[] = [
     averagePrice: 85.00,
     totalAmount: 425.00,
     purchases: [],
-    isBlocked: true,
-    blockReason: "تأخر في السداد",
+    balance: -150.00,
+    isBlocked: false,
     messageSent: true,
-    lastMessageSent: "2024-01-18",
-    last2Quantities: [50, 75],
+    lastMessageSent: "2024-01-12",
+    last2Quantities: [20, 15],
     last2Prices: [80, 90],
-    last2BatteryTypes: ["D", "C"]
+    last2BatteryTypes: ["C", "D"]
   }
 ];
 
 const CustomerFollowUpPage = () => {
   const [customers, setCustomers] = useState<CustomerFollowUp[]>(mockCustomers);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "blocked" | "active">("all");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerFollowUp | null>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [blockReason, setBlockReason] = useState("");
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [customerToBlock, setCustomerToBlock] = useState<CustomerFollowUp | null>(null);
 
-  const filteredCustomers = customers.filter(customer => {
-    const searchMatch = 
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm) ||
-      customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone.includes(searchTerm) ||
+    customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-    const typeMatch = 
-      filterType === "all" || 
-      (filterType === "blocked" && customer.isBlocked) ||
-      (filterType === "active" && !customer.isBlocked);
+  const totalCustomers = customers.length;
+  const blockedCustomers = customers.filter(c => c.isBlocked).length;
+  const totalBalance = customers.reduce((sum, c) => sum + c.balance, 0);
+  const totalSales = customers.reduce((sum, c) => sum + c.totalAmount, 0);
 
-    return searchMatch && typeMatch;
-  });
+  const handleCustomerUpdated = (updatedCustomer: CustomerFollowUp) => {
+    setCustomers(prev => 
+      prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c)
+    );
+    setSelectedCustomer(updatedCustomer);
+  };
 
-  const handleCustomerSelect = (customer: CustomerFollowUp) => {
+  const handleCustomerAdded = (newCustomer: CustomerFollowUp) => {
+    setCustomers(prev => [...prev, newCustomer]);
+  };
+
+  const handleViewDetails = (customer: CustomerFollowUp) => {
     setSelectedCustomer(customer);
-    setShowDetailsDialog(true);
+    setShowCustomerDetails(true);
   };
 
   const handleEditCustomer = (customer: CustomerFollowUp) => {
@@ -104,60 +121,77 @@ const CustomerFollowUpPage = () => {
     setShowEditDialog(true);
   };
 
-  const handleCustomerUpdated = (updatedCustomer: CustomerFollowUp) => {
-    setCustomers(prev => prev.map(customer => 
-      customer.id === updatedCustomer.id ? updatedCustomer : customer
-    ));
-  };
-
-  const toggleCustomerBlock = (customerId: string) => {
-    setCustomers(prev => prev.map(customer => 
-      customer.id === customerId 
-        ? { ...customer, isBlocked: !customer.isBlocked }
-        : customer
-    ));
-    
-    const customer = customers.find(c => c.id === customerId);
+  const handleDeleteCustomer = (customerId: string) => {
+    setCustomers(prev => prev.filter(c => c.id !== customerId));
     toast({
-      title: customer?.isBlocked ? "تم إلغاء الحظر" : "تم حظر العميل",
-      description: `تم ${customer?.isBlocked ? "إلغاء حظر" : "حظر"} العميل بنجاح`,
+      title: "تم الحذف",
+      description: "تم حذف العميل بنجاح",
     });
   };
 
-  const sendMessage = (customerId: string) => {
-    setCustomers(prev => prev.map(customer => 
-      customer.id === customerId 
-        ? { 
-            ...customer, 
-            messageSent: true, 
-            lastMessageSent: new Date().toISOString().split('T')[0] 
-          }
-        : customer
-    ));
-    
+  const handleBlockCustomer = (customer: CustomerFollowUp) => {
+    setCustomerToBlock(customer);
+    setShowBlockDialog(true);
+  };
+
+  const confirmBlockCustomer = () => {
+    if (customerToBlock) {
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === customerToBlock.id
+            ? { ...c, isBlocked: true, blockReason: blockReason }
+            : c
+        )
+      );
+      setShowBlockDialog(false);
+      setBlockReason("");
+      setCustomerToBlock(null);
+      toast({
+        title: "تم حظر العميل",
+        description: "تم حظر العميل بنجاح",
+      });
+    }
+  };
+
+  const handleUnblockCustomer = (customerId: string) => {
+    setCustomers(prev =>
+      prev.map(c =>
+        c.id === customerId
+          ? { ...c, isBlocked: false, blockReason: undefined }
+          : c
+      )
+    );
     toast({
-      title: "تم إرسال الرسالة",
-      description: "تم إرسال رسالة للعميل بنجاح",
+      title: "تم إلغاء الحظر",
+      description: "تم إلغاء حظر العميل بنجاح",
     });
   };
 
-  const getCustomerStatusColor = (customer: CustomerFollowUp) => {
-    if (customer.isBlocked) return "text-red-600";
-    if (customer.totalPurchases >= 10) return "text-green-600";
-    return "text-yellow-600";
+  const handleSendMessage = (customerId: string) => {
+    setCustomers(prev =>
+      prev.map(c =>
+        c.id === customerId
+          ? { ...c, messageSent: true, lastMessageSent: new Date().toISOString().split('T')[0] }
+          : c
+      )
+    );
+    toast({
+      title: "تم الإرسال",
+      description: "تم إرسال رسالة للعميل",
+    });
   };
 
-  const getCustomerStatusText = (customer: CustomerFollowUp) => {
-    if (customer.isBlocked) return "محظور";
-    if (customer.totalPurchases >= 10) return "مميز";
-    return "عادي";
+  const generateNextCustomerCode = () => {
+    if (customers.length === 0) return "C001";
+    const lastNumber = Math.max(...customers.map(c => parseInt(c.customerCode.slice(1))));
+    return `C${(lastNumber + 1).toString().padStart(3, '0')}`;
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+        <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white">
           <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
             <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             متابعة العملاء
@@ -165,91 +199,67 @@ const CustomerFollowUpPage = () => {
         </CardHeader>
         
         <CardContent className="p-4 sm:p-6">
-          <div className="mb-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="ابحث عن عميل..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10 text-sm"
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={filterType === "all" ? "default" : "outline"}
-                  onClick={() => setFilterType("all")}
-                  size="sm"
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  الكل
-                </Button>
-                <Button
-                  variant={filterType === "active" ? "default" : "outline"}
-                  onClick={() => setFilterType("active")}
-                  size="sm"
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  نشط
-                </Button>
-                <Button
-                  variant={filterType === "blocked" ? "default" : "outline"}
-                  onClick={() => setFilterType("blocked")}
-                  size="sm"
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  محظور
-                </Button>
-              </div>
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="ابحث عن عميل بالاسم أو الجوال أو الرمز..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10 text-sm"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
             </div>
+            <Button 
+              onClick={() => setShowAddDialog(true)}
+              className="bg-purple-600 hover:bg-purple-700"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            >
+              <Plus className="w-4 h-4 ml-2" />
+              إضافة عميل جديد
+            </Button>
           </div>
 
-          {/* Statistics Cards */}
+          {/* Statistics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <Users className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-blue-600" />
-                <p className="text-lg sm:text-2xl font-bold">{customers.length}</p>
-                <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              <CardContent className="p-4 text-center">
+                <Users className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                <p className="text-2xl font-bold">{totalCustomers}</p>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                   إجمالي العملاء
                 </p>
               </CardContent>
             </Card>
             
             <Card>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-green-600" />
-                <p className="text-lg sm:text-2xl font-bold">
-                  {customers.filter(c => !c.isBlocked).length}
-                </p>
-                <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  عملاء نشطون
+              <CardContent className="p-4 text-center">
+                <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                <p className="text-2xl font-bold">{totalSales.toFixed(2)}</p>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  إجمالي المبيعات
                 </p>
               </CardContent>
             </Card>
             
             <Card>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <Ban className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-red-600" />
-                <p className="text-lg sm:text-2xl font-bold">
-                  {customers.filter(c => c.isBlocked).length}
+              <CardContent className="p-4 text-center">
+                <TrendingUp className={`w-8 h-8 mx-auto mb-2 ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                <p className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {Math.abs(totalBalance).toFixed(2)}
                 </p>
-                <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  عملاء محظورون
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  {totalBalance >= 0 ? 'رصيد العملاء' : 'مديونية العملاء'}
                 </p>
               </CardContent>
             </Card>
             
             <Card>
-              <CardContent className="p-3 sm:p-4 text-center">
-                <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-purple-600" />
-                <p className="text-lg sm:text-2xl font-bold">
-                  {customers.filter(c => c.messageSent).length}
-                </p>
-                <p className="text-xs sm:text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  رسائل مرسلة
+              <CardContent className="p-4 text-center">
+                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-600" />
+                <p className="text-2xl font-bold text-red-600">{blockedCustomers}</p>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  عملاء محظورين
                 </p>
               </CardContent>
             </Card>
@@ -258,125 +268,106 @@ const CustomerFollowUpPage = () => {
       </Card>
 
       {/* Customers List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCustomers.map((customer) => (
-          <Card key={customer.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg mb-1" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    {customer.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-1">كود: {customer.customerCode}</p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm">{customer.phone}</span>
-                  </div>
-                </div>
-                <Badge 
-                  variant={customer.isBlocked ? "destructive" : "default"}
-                  className={getCustomerStatusColor(customer)}
-                >
-                  {getCustomerStatusText(customer)}
-                </Badge>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>قائمة العملاء</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>رمز العميل</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الاسم</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الجوال</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>آخر عملية بيع</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>إجمالي المبيعات</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الرصيد</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الحالة</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((customer) => (
+                  <tr key={customer.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3 font-semibold">{customer.customerCode}</td>
+                    <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.name}</td>
+                    <td className="p-3" dir="ltr">{customer.phone}</td>
+                    <td className="p-3">{customer.lastPurchase}</td>
+                    <td className="p-3 font-bold text-green-600">{customer.totalAmount.toFixed(2)} ريال</td>
+                    <td className={`p-3 font-bold ${customer.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {Math.abs(customer.balance).toFixed(2)} ريال
+                    </td>
+                    <td className="p-3">
+                      {customer.isBlocked ? (
+                        <Badge variant="destructive">محظور</Badge>
+                      ) : (
+                        <Badge variant="default">نشط</Badge>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-1 flex-wrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(customer)}
+                        >
+                          <ShoppingCart className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditCustomer(customer)}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSendMessage(customer.id)}
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                        </Button>
+                        {customer.isBlocked ? (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleUnblockCustomer(customer.id)}
+                          >
+                            إلغاء الحظر
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleBlockCustomer(customer)}
+                          >
+                            حظر
+                          </Button>
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteCustomer(customer.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span>إجمالي المشتريات:</span>
-                  <span className="font-bold">{customer.totalPurchases}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>متوسط السعر:</span>
-                  <span className="font-bold">{customer.averagePrice.toFixed(2)} ريال</span>
-                </div>
-                {customer.lastPurchase && (
-                  <div className="flex justify-between text-sm">
-                    <span>آخر شراء:</span>
-                    <span>{customer.lastPurchase}</span>
-                  </div>
-                )}
-                {customer.isBlocked && customer.blockReason && (
-                  <div className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3" />
-                    <span>{customer.blockReason}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleCustomerSelect(customer)}
-                    className="flex-1 text-xs"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    التفاصيل
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEditCustomer(customer)}
-                    className="flex-1 text-xs"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    <Edit className="w-3 h-3 ml-1" />
-                    تعديل
-                  </Button>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant={customer.isBlocked ? "default" : "destructive"}
-                    size="sm"
-                    onClick={() => toggleCustomerBlock(customer.id)}
-                    className="flex-1 text-xs"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    {customer.isBlocked ? "إلغاء الحظر" : "حظر"}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => sendMessage(customer.id)}
-                    disabled={customer.messageSent}
-                    className="flex-1 text-xs"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    <MessageCircle className="w-3 h-3 ml-1" />
-                    {customer.messageSent ? "تم الإرسال" : "إرسال رسالة"}
-                  </Button>
-                </div>
-              </div>
-
-              {customer.messageSent && customer.lastMessageSent && (
-                <div className="mt-2 text-xs text-gray-500 text-center">
-                  آخر رسالة: {customer.lastMessageSent}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredCustomers.length === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Users className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              لا توجد عملاء تطابق البحث
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
+      {/* Dialogs */}
       <CustomerDetailsDialog
-        open={showDetailsDialog}
-        onClose={() => setShowDetailsDialog(false)}
+        open={showCustomerDetails}
+        onClose={() => setShowCustomerDetails(false)}
         customer={selectedCustomer}
+        onCustomerUpdated={handleCustomerUpdated}
       />
 
       <EditCustomerDialog
@@ -385,6 +376,49 @@ const CustomerFollowUpPage = () => {
         customer={selectedCustomer}
         onCustomerUpdated={handleCustomerUpdated}
       />
+
+      <AddCustomerDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onCustomerAdded={handleCustomerAdded}
+        nextCustomerCode={generateNextCustomerCode()}
+      />
+
+      {/* Block Customer Dialog */}
+      <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              حظر العميل
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              هل أنت متأكد من حظر العميل: <strong>{customerToBlock?.name}</strong>؟
+            </p>
+            <div>
+              <Label htmlFor="blockReason" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                سبب الحظر
+              </Label>
+              <Textarea
+                id="blockReason"
+                value={blockReason}
+                onChange={(e) => setBlockReason(e.target.value)}
+                placeholder="أدخل سبب الحظر..."
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={() => setShowBlockDialog(false)} variant="outline">
+                إلغاء
+              </Button>
+              <Button onClick={confirmBlockCustomer} variant="destructive">
+                تأكيد الحظر
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

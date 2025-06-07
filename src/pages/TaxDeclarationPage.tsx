@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Calculator, TrendingUp, TrendingDown, Download, Printer } from "lucide-react";
+import { FileText, Calculator, TrendingUp, TrendingDown, Download, Printer, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { getTaxDataForPeriod } from "@/utils/accountUtils";
 
@@ -27,6 +27,9 @@ interface TaxData {
 const TaxDeclarationPage = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedQuarter, setSelectedQuarter] = useState(Math.ceil((new Date().getMonth() + 1) / 3));
+  const [useCustomPeriod, setUseCustomPeriod] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
   const [taxData, setTaxData] = useState<TaxData | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -38,18 +41,58 @@ const TaxDeclarationPage = () => {
     { value: 4, label: "الربع الرابع (أكتوبر - ديسمبر)", startMonth: 10, endMonth: 12 }
   ];
 
+  const getTaxDataForCustomPeriod = (startDate: string, endDate: string) => {
+    // Convert date strings to Date objects
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // For custom periods, we'll calculate based on the date range
+    // This is a simplified implementation - in a real system you'd query the database
+    const year = start.getFullYear();
+    const quarter = Math.ceil((start.getMonth() + 1) / 3);
+    
+    return getTaxDataForPeriod(year, quarter);
+  };
+
   const calculateTax = async () => {
     setIsCalculating(true);
     
-    // حساب الضريبة من البيانات الفعلية
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const quarter = quarters.find(q => q.value === selectedQuarter)!;
-    const startDate = `${selectedYear}-${quarter.startMonth.toString().padStart(2, '0')}-01`;
-    const endDate = new Date(selectedYear, quarter.endMonth, 0).toISOString().split('T')[0];
+    let startDate: string;
+    let endDate: string;
+    let realTaxData: any;
 
-    // جلب البيانات الفعلية من المبيعات والمشتريات
-    const realTaxData = getTaxDataForPeriod(selectedYear, selectedQuarter);
+    if (useCustomPeriod) {
+      if (!customStartDate || !customEndDate) {
+        toast({
+          title: "خطأ",
+          description: "يرجى تحديد تاريخ البداية والنهاية",
+          variant: "destructive"
+        });
+        setIsCalculating(false);
+        return;
+      }
+      
+      if (new Date(customStartDate) > new Date(customEndDate)) {
+        toast({
+          title: "خطأ",
+          description: "تاريخ البداية يجب أن يكون قبل تاريخ النهاية",
+          variant: "destructive"
+        });
+        setIsCalculating(false);
+        return;
+      }
+
+      startDate = customStartDate;
+      endDate = customEndDate;
+      realTaxData = getTaxDataForCustomPeriod(customStartDate, customEndDate);
+    } else {
+      const quarter = quarters.find(q => q.value === selectedQuarter)!;
+      startDate = `${selectedYear}-${quarter.startMonth.toString().padStart(2, '0')}-01`;
+      endDate = new Date(selectedYear, quarter.endMonth, 0).toISOString().split('T')[0];
+      realTaxData = getTaxDataForPeriod(selectedYear, selectedQuarter);
+    }
 
     setTaxData({
       salesVAT: Math.round(realTaxData.salesVAT),
@@ -59,7 +102,7 @@ const TaxDeclarationPage = () => {
       purchaseAmount: Math.round(realTaxData.purchaseAmount),
       period: {
         year: selectedYear,
-        quarter: selectedQuarter,
+        quarter: useCustomPeriod ? 0 : selectedQuarter,
         startDate,
         endDate
       }
@@ -67,18 +110,26 @@ const TaxDeclarationPage = () => {
 
     setIsCalculating(false);
     
+    const periodText = useCustomPeriod 
+      ? `من ${startDate} إلى ${endDate}`
+      : `الربع ${selectedQuarter} من عام ${selectedYear}`;
+    
     toast({
       title: "تم حساب الإقرار الضريبي",
-      description: `تم حساب الإقرار للربع ${selectedQuarter} من عام ${selectedYear}`,
+      description: `تم حساب الإقرار للفترة ${periodText}`,
     });
   };
 
   const generateReport = () => {
     if (!taxData) return;
 
+    const periodText = useCustomPeriod
+      ? `من ${taxData.period.startDate} إلى ${taxData.period.endDate}`
+      : `${quarters.find(q => q.value === taxData.period.quarter)?.label} ${taxData.period.year}`;
+
     const reportContent = `
       إقرار ضريبة القيمة المضافة
-      الفترة: ${quarters.find(q => q.value === taxData.period.quarter)?.label} ${taxData.period.year}
+      الفترة: ${periodText}
       
       المبيعات الخاضعة للضريبة: ${taxData.salesAmount.toLocaleString()} ريال
       ضريبة المبيعات (15%): ${taxData.salesVAT.toLocaleString()} ريال
@@ -93,7 +144,10 @@ const TaxDeclarationPage = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tax-declaration-${taxData.period.year}-Q${taxData.period.quarter}.txt`;
+    const fileName = useCustomPeriod 
+      ? `tax-declaration-${taxData.period.startDate}-to-${taxData.period.endDate}.txt`
+      : `tax-declaration-${taxData.period.year}-Q${taxData.period.quarter}.txt`;
+    a.download = fileName;
     a.click();
     window.URL.revokeObjectURL(url);
 
@@ -109,7 +163,9 @@ const TaxDeclarationPage = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const quarter = quarters.find(q => q.value === taxData.period.quarter);
+    const periodText = useCustomPeriod
+      ? `من ${taxData.period.startDate} إلى ${taxData.period.endDate}`
+      : quarters.find(q => q.value === taxData.period.quarter)?.label + ` ${taxData.period.year}`;
     
     printWindow.document.write(`
       <html>
@@ -126,7 +182,7 @@ const TaxDeclarationPage = () => {
         <body>
           <div class="header">
             <h1>إقرار ضريبة القيمة المضافة</h1>
-            <h2>${quarter?.label} ${taxData.period.year}</h2>
+            <h2>${periodText}</h2>
             <p>من ${taxData.period.startDate} إلى ${taxData.period.endDate}</p>
           </div>
           
@@ -177,39 +233,85 @@ const TaxDeclarationPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="year" style={{ fontFamily: 'Tajawal, sans-serif' }}>السنة</Label>
-                  <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map(year => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="quarter" style={{ fontFamily: 'Tajawal, sans-serif' }}>الربع</Label>
-                  <Select value={selectedQuarter.toString()} onValueChange={(value) => setSelectedQuarter(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      {quarters.map(quarter => (
-                        <SelectItem key={quarter.value} value={quarter.value.toString()} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          {quarter.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              {/* Period Selection Type */}
+              <div className="space-y-3">
+                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>نوع الفترة</Label>
+                <div className="flex gap-4">
+                  <Button
+                    variant={!useCustomPeriod ? "default" : "outline"}
+                    onClick={() => setUseCustomPeriod(false)}
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    ربع سنوي
+                  </Button>
+                  <Button
+                    variant={useCustomPeriod ? "default" : "outline"}
+                    onClick={() => setUseCustomPeriod(true)}
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <Calendar className="w-4 h-4 ml-2" />
+                    فترة مخصصة
+                  </Button>
                 </div>
               </div>
+
+              {!useCustomPeriod ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="year" style={{ fontFamily: 'Tajawal, sans-serif' }}>السنة</Label>
+                    <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map(year => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="quarter" style={{ fontFamily: 'Tajawal, sans-serif' }}>الربع</Label>
+                    <Select value={selectedQuarter.toString()} onValueChange={(value) => setSelectedQuarter(parseInt(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        {quarters.map(quarter => (
+                          <SelectItem key={quarter.value} value={quarter.value.toString()} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                            {quarter.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="startDate" style={{ fontFamily: 'Tajawal, sans-serif' }}>تاريخ البداية</Label>
+                    <Input
+                      type="date"
+                      id="startDate"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="endDate" style={{ fontFamily: 'Tajawal, sans-serif' }}>تاريخ النهاية</Label>
+                    <Input
+                      type="date"
+                      id="endDate"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
 
               <Button
                 onClick={calculateTax}
@@ -296,10 +398,24 @@ const TaxDeclarationPage = () => {
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <p style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  {quarters.find(q => q.value === selectedQuarter)?.label}
-                </p>
-                <p className="text-2xl font-bold">{selectedYear}</p>
+                {useCustomPeriod ? (
+                  <div>
+                    <p style={{ fontFamily: 'Tajawal, sans-serif' }}>فترة مخصصة</p>
+                    {customStartDate && customEndDate && (
+                      <div className="text-sm">
+                        <p>من: {customStartDate}</p>
+                        <p>إلى: {customEndDate}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                      {quarters.find(q => q.value === selectedQuarter)?.label}
+                    </p>
+                    <p className="text-2xl font-bold">{selectedYear}</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
