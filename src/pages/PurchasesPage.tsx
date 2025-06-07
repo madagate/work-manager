@@ -3,489 +3,469 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-import { ShoppingBag, Plus, Search, CreditCard, Banknote, Smartphone, Calendar, Printer, Edit } from "lucide-react";
+import { ShoppingCart, Search, Plus, Calendar, DollarSign, TrendingUp, Users, Edit, Printer, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { SupplierSearchDialog } from "@/components/SupplierSearchDialog";
 import { Purchase, PurchaseItem } from "@/types/purchases";
-import { addTransactionToSupplier } from "@/utils/accountUtils";
+import { addTransactionToSupplier, removeSupplierTransactionByInvoice } from "@/utils/accountUtils";
 
-interface Supplier {
-  id: string;
-  supplierCode: string;
-  name: string;
-  phone: string;
-  balance: number;
-}
-
-const mockSuppliers: Supplier[] = [
-  { id: "1", supplierCode: "S001", name: "مورد البطاريات الأول", phone: "0501234567", balance: -800 },
-  { id: "2", supplierCode: "S002", name: "شركة الطاقة المتجددة", phone: "0507654321", balance: 0 },
-  { id: "3", supplierCode: "S003", name: "مؤسسة الكهرباء", phone: "0502345678", balance: -1200 },
-];
-
-const batteryTypes = [
-  "بطاريات عادية",
-  "بطاريات جافة", 
-  "بطاريات زجاج",
-  "بطاريات تعبئة",
-  "رصاص"
-];
-
-const paymentMethods = [
-  { value: "cash", label: "نقداً", icon: Banknote },
-  { value: "card", label: "بطاقة", icon: CreditCard },
-  { value: "transfer", label: "تحويل", icon: Smartphone },
-  { value: "credit", label: "آجل", icon: Calendar }
+// Mock data
+const mockPurchases: Purchase[] = [
+  {
+    id: "1",
+    invoiceNumber: "P001",
+    date: "2024-01-20",
+    supplierId: "S001",
+    supplierName: "مورد البطاريات الرئيسي",
+    items: [
+      { id: "1", batteryType: "AAA", quantity: 100, price: 2.5, total: 250 },
+      { id: "2", batteryType: "AA", quantity: 50, price: 3.0, total: 150 }
+    ],
+    subtotal: 400,
+    discount: 20,
+    tax: 57,
+    total: 437,
+    paymentMethod: "آجل",
+    status: "مكتملة"
+  }
 ];
 
 const PurchasesPage = () => {
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([
-    { id: "1", batteryType: "بطاريات عادية", quantity: 0, price: 0, total: 0 }
-  ]);
-  const [discount, setDiscount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [purchases, setPurchases] = useState<Purchase[]>(mockPurchases);
   const [searchTerm, setSearchTerm] = useState("");
-  const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
-  const [vatEnabled, setVatEnabled] = useState(false);
-  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [showSupplierDialog, setShowSupplierDialog] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<{ id: string; name: string } | null>(null);
+  const [newPurchase, setNewPurchase] = useState({
+    date: new Date().toISOString().split('T')[0],
+    supplierId: "",
+    supplierName: "",
+    items: [] as PurchaseItem[],
+    discount: 0,
+    paymentMethod: "آجل"
+  });
+  const [currentItem, setCurrentItem] = useState({
+    batteryType: "",
+    quantity: 0,
+    price: 0
+  });
 
-  const filteredSuppliers = mockSuppliers.filter(supplier =>
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.phone.includes(searchTerm) ||
-    supplier.supplierCode.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPurchases = purchases.filter(purchase =>
+    purchase.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    purchase.supplierName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addPurchaseItem = () => {
-    const newItem: PurchaseItem = {
+  const generateNextInvoiceNumber = () => {
+    if (purchases.length === 0) return "P001";
+    const lastNumber = purchases[purchases.length - 1].invoiceNumber;
+    const number = parseInt(lastNumber.slice(1)) + 1;
+    return `P${number.toString().padStart(3, '0')}`;
+  };
+
+  const handleSupplierSelect = (supplier: { id: string; name: string }) => {
+    setSelectedSupplier(supplier);
+    setNewPurchase(prev => ({
+      ...prev,
+      supplierId: supplier.id,
+      supplierName: supplier.name
+    }));
+    setShowSupplierDialog(false);
+  };
+
+  const addItemToPurchase = () => {
+    if (!currentItem.batteryType || currentItem.quantity <= 0 || currentItem.price <= 0) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع بيانات الصنف",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const item: PurchaseItem = {
       id: Date.now().toString(),
-      batteryType: "بطاريات عادية",
+      batteryType: currentItem.batteryType,
+      quantity: currentItem.quantity,
+      price: currentItem.price,
+      total: currentItem.quantity * currentItem.price
+    };
+
+    setNewPurchase(prev => ({
+      ...prev,
+      items: [...prev.items, item]
+    }));
+
+    setCurrentItem({
+      batteryType: "",
       quantity: 0,
-      price: 0,
-      total: 0
-    };
-    setPurchaseItems([...purchaseItems, newItem]);
+      price: 0
+    });
   };
 
-  const updatePurchaseItem = (index: number, field: keyof PurchaseItem, value: any) => {
-    const updatedItems = [...purchaseItems];
-    updatedItems[index] = { ...updatedItems[index], [field]: value };
-    
-    if (field === 'quantity' || field === 'price') {
-      updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].price;
-    }
-    
-    setPurchaseItems(updatedItems);
+  const removeItem = (itemId: string) => {
+    setNewPurchase(prev => ({
+      ...prev,
+      items: prev.items.filter(item => item.id !== itemId)
+    }));
   };
 
-  const removePurchaseItem = (index: number) => {
-    if (purchaseItems.length > 1) {
-      setPurchaseItems(purchaseItems.filter((_, i) => i !== index));
-    }
+  const calculateTotals = () => {
+    const subtotal = newPurchase.items.reduce((sum, item) => sum + item.total, 0);
+    const discountAmount = (subtotal * newPurchase.discount) / 100;
+    const afterDiscount = subtotal - discountAmount;
+    const tax = afterDiscount * 0.15; // 15% VAT
+    const total = afterDiscount + tax;
+
+    return { subtotal, discountAmount, tax, total };
   };
 
-  const calculateSubtotal = () => {
-    return purchaseItems.reduce((sum, item) => sum + item.total, 0);
-  };
-
-  const calculateTax = () => {
-    if (!vatEnabled) return 0;
-    return Math.round(calculateSubtotal() * 0.15);
-  };
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax() - discount;
-  };
-
-  const resetForm = () => {
-    setSelectedSupplier(null);
-    setPurchaseItems([{ id: "1", batteryType: "بطاريات عادية", quantity: 0, price: 0, total: 0 }]);
-    setDiscount(0);
-    setPaymentMethod("cash");
-    setVatEnabled(false);
-  };
-
-  const generatePurchaseInvoice = () => {
-    if (!selectedSupplier) {
+  const handleSavePurchase = () => {
+    if (!selectedSupplier || newPurchase.items.length === 0) {
       toast({
         title: "خطأ",
-        description: "يرجى اختيار المورد أولاً",
-        variant: "destructive",
-        duration: 2000,
+        description: "يرجى اختيار مورد وإضافة أصناف",
+        variant: "destructive"
       });
       return;
     }
 
-    if (purchaseItems.some(item => !item.quantity || !item.price)) {
-      toast({
-        title: "خطأ",
-        description: "يرجى ملء جميع بيانات الأصناف",
-        variant: "destructive",
-        duration: 2000,
-      });
-      return;
-    }
-
-    const invoiceNumber = `PUR-${Date.now()}`;
-    const newPurchase: Purchase = {
+    const { subtotal, tax, total } = calculateTotals();
+    
+    const purchase: Purchase = {
       id: Date.now().toString(),
-      invoiceNumber,
-      date: new Date().toISOString().split('T')[0],
-      supplierId: selectedSupplier.id,
-      supplierName: selectedSupplier.name,
-      items: [...purchaseItems],
-      subtotal: calculateSubtotal(),
-      discount,
-      tax: calculateTax(),
-      total: calculateTotal(),
-      paymentMethod,
-      status: "completed"
+      invoiceNumber: generateNextInvoiceNumber(),
+      date: newPurchase.date,
+      supplierId: newPurchase.supplierId,
+      supplierName: newPurchase.supplierName,
+      items: newPurchase.items,
+      subtotal,
+      discount: newPurchase.discount,
+      tax,
+      total,
+      paymentMethod: newPurchase.paymentMethod,
+      status: "مكتملة"
     };
 
-    // Add to recent purchases
-    setRecentPurchases([newPurchase, ...recentPurchases]);
+    setPurchases(prev => [...prev, purchase]);
 
-    // Handle supplier balance and account statement for credit purchases
-    if (paymentMethod === 'credit') {
-      addTransactionToSupplier(selectedSupplier.id, {
-        date: newPurchase.date,
-        type: 'purchase',
-        description: `فاتورة مشتريات رقم ${invoiceNumber}`,
-        amount: newPurchase.total,
-        invoiceNumber,
-        vatAmount: newPurchase.tax
+    // Add to supplier account if payment is deferred
+    if (newPurchase.paymentMethod === "آجل") {
+      addTransactionToSupplier(newPurchase.supplierId, {
+        date: purchase.date,
+        type: "purchase",
+        description: `فاتورة مشتريات رقم ${purchase.invoiceNumber}`,
+        amount: total,
+        invoiceNumber: purchase.invoiceNumber,
+        vatAmount: tax
       });
+    }
+
+    // Reset form
+    setNewPurchase({
+      date: new Date().toISOString().split('T')[0],
+      supplierId: "",
+      supplierName: "",
+      items: [],
+      discount: 0,
+      paymentMethod: "آجل"
+    });
+    setSelectedSupplier(null);
+
+    toast({
+      title: "تمت الإضافة",
+      description: "تمت إضافة فاتورة المشتريات بنجاح",
+    });
+  };
+
+  const handleDeletePurchase = (purchase: Purchase) => {
+    // Remove from purchases list
+    setPurchases(prev => prev.filter(p => p.id !== purchase.id));
+    
+    // Remove from supplier account if it was deferred
+    if (purchase.paymentMethod === "آجل") {
+      removeSupplierTransactionByInvoice(purchase.supplierId, purchase.invoiceNumber);
     }
 
     toast({
-      title: "تم إنشاء فاتورة المشتريات",
-      description: `تم إنشاء فاتورة رقم ${invoiceNumber} بنجاح`,
-      duration: 2000,
+      title: "تم الحذف",
+      description: "تم حذف فاتورة المشتريات وتحديث حساب المورد",
     });
-
-    // Reset form
-    resetForm();
   };
 
-  const SupplierSearchDialog = () => (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full flex items-center gap-2 flex-row-reverse">
-          <Search className="w-4 h-4" />
-          {selectedSupplier ? selectedSupplier.name : "اختر المورد"}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md" dir="rtl">
-        <DialogHeader>
-          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            اختيار المورد
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="ابحث عن مورد..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10"
-              style={{ fontFamily: 'Tajawal, sans-serif' }}
-            />
-          </div>
-          
-          <div className="max-h-60 overflow-y-auto space-y-2">
-            {filteredSuppliers.map(supplier => (
-              <div
-                key={supplier.id}
-                onClick={() => {
-                  setSelectedSupplier(supplier);
-                  setSearchTerm("");
-                }}
-                className="p-3 border rounded cursor-pointer hover:bg-gray-50"
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      {supplier.name}
-                    </p>
-                    <p className="text-sm text-gray-600">{supplier.phone}</p>
-                    <Badge variant="secondary" className="mt-1">
-                      {supplier.supplierCode}
-                    </Badge>
-                  </div>
-                  <div className="text-left">
-                    <p className={`font-bold ${supplier.balance <= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {Math.abs(supplier.balance).toLocaleString()} ريال
-                    </p>
-                    <p className="text-xs text-gray-500">المستحق</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  const totals = calculateTotals();
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 text-white">
+        <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
           <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-            نظام المشتريات
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+            إدارة المشتريات
           </CardTitle>
         </CardHeader>
-      </Card>
+        
+        <CardContent className="p-4 sm:p-6">
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="ابحث عن فاتورة مشتريات..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pr-10 text-sm"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Purchase Form */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                إنشاء فاتورة مشتريات جديدة
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Supplier Selection */}
+          {/* Add New Purchase Form */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 className="text-lg font-semibold mb-4" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              إضافة فاتورة مشتريات جديدة
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <Label htmlFor="date" style={{ fontFamily: 'Tajawal, sans-serif' }}>التاريخ</Label>
+                <Input
+                  type="date"
+                  id="date"
+                  value={newPurchase.date}
+                  onChange={(e) => setNewPurchase({ ...newPurchase, date: e.target.value })}
+                />
+              </div>
+              
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>المورد</Label>
-                <SupplierSearchDialog />
-                {selectedSupplier && (
-                  <div className="mt-2 p-3 bg-orange-50 rounded border">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          {selectedSupplier.name}
-                        </p>
-                        <p className="text-sm text-gray-600">{selectedSupplier.phone}</p>
-                      </div>
-                      <div className="text-left">
-                        <p className={`font-bold ${selectedSupplier.balance <= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {Math.abs(selectedSupplier.balance).toLocaleString()} ريال
-                        </p>
-                        <p className="text-xs text-gray-500">المستحق الحالي</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="اختر مورد"
+                    value={selectedSupplier?.name || ""}
+                    readOnly
+                    className="flex-1"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowSupplierDialog(true)}
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <Users className="w-4 h-4 ml-2" />
+                    اختيار
+                  </Button>
+                </div>
               </div>
 
-              {/* Purchase Items */}
               <div>
-                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>أصناف الفاتورة</Label>
-                <div className="space-y-3 mt-2">
-                  {purchaseItems.map((item, index) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
-                      <div className="col-span-4">
-                        <Select
-                          value={item.batteryType}
-                          onValueChange={(value) => updatePurchaseItem(index, 'batteryType', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {batteryTypes.map(type => (
-                              <SelectItem key={type} value={type} style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          placeholder="الكمية"
-                          value={item.quantity || ''}
-                          onChange={(e) => updatePurchaseItem(index, 'quantity', Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          placeholder="السعر"
-                          value={item.price || ''}
-                          onChange={(e) => updatePurchaseItem(index, 'price', Number(e.target.value) || 0)}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          value={item.total.toLocaleString()}
-                          disabled
-                          className="bg-gray-100"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removePurchaseItem(index)}
-                          disabled={purchaseItems.length === 1}
-                        >
-                          حذف
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Button
-                  onClick={addPurchaseItem}
-                  variant="outline"
-                  className="mt-3 w-full flex items-center gap-2"
+                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>طريقة الدفع</Label>
+                <Select value={newPurchase.paymentMethod} onValueChange={(value) => setNewPurchase({ ...newPurchase, paymentMethod: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="نقداً" style={{ fontFamily: 'Tajawal, sans-serif' }}>نقداً</SelectItem>
+                    <SelectItem value="آجل" style={{ fontFamily: 'Tajawal, sans-serif' }}>آجل</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Add Items */}
+            <div className="border-t pt-4">
+              <h4 className="font-semibold mb-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>إضافة الأصناف</h4>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                <Input
+                  placeholder="نوع البطارية"
+                  value={currentItem.batteryType}
+                  onChange={(e) => setCurrentItem({ ...currentItem, batteryType: e.target.value })}
                   style={{ fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  <Plus className="w-4 h-4" />
-                  إضافة صنف
+                />
+                <Input
+                  type="number"
+                  placeholder="الكمية"
+                  value={currentItem.quantity || ""}
+                  onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseInt(e.target.value) || 0 })}
+                />
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="السعر"
+                  value={currentItem.price || ""}
+                  onChange={(e) => setCurrentItem({ ...currentItem, price: parseFloat(e.target.value) || 0 })}
+                />
+                <Button onClick={addItemToPurchase} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  <Plus className="w-4 h-4 ml-2" />
+                  إضافة
                 </Button>
               </div>
 
-              {/* Payment Method */}
-              <div>
-                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>طريقة الدفع</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
-                  {paymentMethods.map(method => {
-                    const Icon = method.icon;
-                    return (
-                      <Button
-                        key={method.value}
-                        variant={paymentMethod === method.value ? "default" : "outline"}
-                        onClick={() => setPaymentMethod(method.value)}
-                        className="flex items-center gap-2"
-                        style={{ fontFamily: 'Tajawal, sans-serif' }}
-                      >
-                        <Icon className="w-4 h-4" />
-                        {method.label}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* VAT Toggle */}
-              <div className="flex items-center justify-between">
-                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>تطبيق ضريبة القيمة المضافة (15%)</Label>
-                <Switch
-                  checked={vatEnabled}
-                  onCheckedChange={setVatEnabled}
-                />
-              </div>
-
-              {/* Discount */}
-              <div>
-                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>الخصم</Label>
-                <Input
-                  type="number"
-                  value={discount || ''}
-                  onChange={(e) => setDiscount(Number(e.target.value) || 0)}
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Action Button */}
-              <Button
-                onClick={generatePurchaseInvoice}
-                className="w-full"
-                style={{ fontFamily: 'Tajawal, sans-serif' }}
-              >
-                إنشاء فاتورة المشتريات
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Purchase Summary */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                ملخص الفاتورة
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between">
-                <span style={{ fontFamily: 'Tajawal, sans-serif' }}>المجموع الفرعي:</span>
-                <span className="font-bold">{calculateSubtotal().toLocaleString()} ريال</span>
-              </div>
-              {vatEnabled && (
-                <div className="flex justify-between">
-                  <span style={{ fontFamily: 'Tajawal, sans-serif' }}>ضريبة القيمة المضافة (15%):</span>
-                  <span className="font-bold">{calculateTax().toLocaleString()} ريال</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span style={{ fontFamily: 'Tajawal, sans-serif' }}>الخصم:</span>
-                <span className="font-bold text-red-600">-{discount.toLocaleString()} ريال</span>
-              </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between text-lg">
-                  <span className="font-bold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي:</span>
-                  <span className="font-bold text-orange-600">{calculateTotal().toLocaleString()} ريال</span>
-                </div>
-              </div>
-              
-              {paymentMethod === 'credit' && (
-                <div className="bg-yellow-50 p-3 rounded border">
-                  <p className="text-sm text-yellow-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    ملاحظة: سيتم إضافة هذا المبلغ لرصيد المورد في حالة الشراء الآجل
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Purchases */}
-          {recentPurchases.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  آخر المشتريات
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentPurchases.slice(0, 5).map(purchase => (
-                    <div key={purchase.id} className="p-3 border rounded">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold text-sm">{purchase.invoiceNumber}</p>
-                          <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {purchase.supplierName}
-                          </p>
-                          <Badge variant={purchase.paymentMethod === 'credit' ? 'destructive' : 'default'} className="text-xs mt-1">
-                            {paymentMethods.find(m => m.value === purchase.paymentMethod)?.label}
-                          </Badge>
-                        </div>
-                        <div className="text-left">
-                          <p className="font-bold text-orange-600">{purchase.total.toLocaleString()} ريال</p>
-                          <div className="flex gap-1 mt-1">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              title="طباعة"
-                            >
-                              <Printer className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
+              {/* Items List */}
+              {newPurchase.items.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {newPurchase.items.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center bg-white p-3 rounded border">
+                      <div className="flex-1">
+                        <span className="font-medium">{item.batteryType}</span>
+                        <span className="text-gray-600 mr-2">- الكمية: {item.quantity}</span>
+                        <span className="text-gray-600 mr-2">- السعر: {item.price}</span>
+                        <span className="text-blue-600 font-bold mr-2">- المجموع: {item.total} ريال</span>
                       </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Totals */}
+              {newPurchase.items.length > 0 && (
+                <div className="bg-white p-4 rounded border space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>نسبة الخصم (%)</Label>
+                      <Input
+                        type="number"
+                        value={newPurchase.discount}
+                        onChange={(e) => setNewPurchase({ ...newPurchase, discount: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="text-right space-y-1">
+                    <p>المجموع الفرعي: <span className="font-bold">{totals.subtotal.toFixed(2)} ريال</span></p>
+                    <p>الخصم: <span className="font-bold text-red-600">{totals.discountAmount.toFixed(2)} ريال</span></p>
+                    <p>الضريبة (15%): <span className="font-bold text-orange-600">{totals.tax.toFixed(2)} ريال</span></p>
+                    <p className="text-lg">المجموع النهائي: <span className="font-bold text-green-600">{totals.total.toFixed(2)} ريال</span></p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end mt-4">
+                <Button
+                  onClick={handleSavePurchase}
+                  disabled={!selectedSupplier || newPurchase.items.length === 0}
+                  className="bg-green-600 hover:bg-green-700"
+                  style={{ fontFamily: 'Tajawal, sans-serif' }}
+                >
+                  حفظ الفاتورة
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Statistics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-4 text-center">
+                <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                <p className="text-2xl font-bold">{purchases.length}</p>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  إجمالي المشتريات
+                </p>
               </CardContent>
             </Card>
-          )}
-        </div>
-      </div>
+            
+            <Card>
+              <CardContent className="p-4 text-center">
+                <DollarSign className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                <p className="text-2xl font-bold">
+                  {purchases.reduce((sum, p) => sum + p.total, 0).toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  إجمالي القيمة
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4 text-center">
+                <TrendingUp className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                <p className="text-2xl font-bold">
+                  {purchases.reduce((sum, p) => sum + p.tax, 0).toFixed(2)}
+                </p>
+                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                  إجمالي الضريبة
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Purchases List */}
+      <Card>
+        <CardHeader>
+          <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>قائمة المشتريات</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>رقم الفاتورة</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>التاريخ</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>المورد</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>المجموع</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>طريقة الدفع</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الحالة</th>
+                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPurchases.map((purchase) => (
+                  <tr key={purchase.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3 font-semibold">{purchase.invoiceNumber}</td>
+                    <td className="p-3">{purchase.date}</td>
+                    <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{purchase.supplierName}</td>
+                    <td className="p-3 font-bold text-green-600">{purchase.total.toFixed(2)} ريال</td>
+                    <td className="p-3">
+                      <Badge variant={purchase.paymentMethod === "آجل" ? "secondary" : "default"}>
+                        {purchase.paymentMethod}
+                      </Badge>
+                    </td>
+                    <td className="p-3">
+                      <Badge variant="default">{purchase.status}</Badge>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="sm">
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Printer className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeletePurchase(purchase)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <SupplierSearchDialog
+        open={showSupplierDialog}
+        onClose={() => setShowSupplierDialog(false)}
+        onSupplierSelect={handleSupplierSelect}
+        searchTerm=""
+      />
     </div>
   );
 };

@@ -13,7 +13,7 @@ import { CustomerSearchDialog } from "@/components/CustomerSearchDialog";
 import { SupplierSearchDialog } from "@/components/SupplierSearchDialog";
 import { EditVoucherDialog } from "@/components/EditVoucherDialog";
 import { printVoucher } from "@/utils/voucherPrintUtils";
-import { addTransactionToCustomer, addTransactionToSupplier, removeCustomerTransaction, removeSupplierTransaction } from "@/utils/accountUtils";
+import { addTransactionToCustomer, addTransactionToSupplier, removeCustomerTransaction, removeSupplierTransaction, removeCustomerTransactionByVoucher, removeSupplierTransactionByVoucher } from "@/utils/accountUtils";
 
 interface Voucher {
   id: string;
@@ -210,23 +210,9 @@ const VouchersPage = () => {
     
     // Remove transaction from account
     if (voucher.entityType === "customer") {
-      // Find and remove the transaction
-      const transactions = vouchers.filter(v => 
-        v.entityId === voucher.entityId && 
-        v.voucherNumber === voucher.voucherNumber
-      );
-      if (transactions.length > 0) {
-        removeCustomerTransaction(voucher.entityId, transactions[0].id);
-      }
+      removeCustomerTransactionByVoucher(voucher.entityId, voucher.voucherNumber);
     } else {
-      // Find and remove the transaction
-      const transactions = vouchers.filter(v => 
-        v.entityId === voucher.entityId && 
-        v.voucherNumber === voucher.voucherNumber
-      );
-      if (transactions.length > 0) {
-        removeSupplierTransaction(voucher.entityId, transactions[0].id);
-      }
+      removeSupplierTransactionByVoucher(voucher.entityId, voucher.voucherNumber);
     }
 
     toast({

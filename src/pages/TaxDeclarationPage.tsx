@@ -1,12 +1,12 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Calculator, TrendingUp, TrendingDown, Download, Printer } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { getTaxDataForPeriod } from "@/utils/accountUtils";
 
 interface TaxPeriod {
   year: number;
@@ -41,27 +41,22 @@ const TaxDeclarationPage = () => {
   const calculateTax = async () => {
     setIsCalculating(true);
     
-    // محاكاة حساب الضريبة من المبيعات والمشتريات
+    // حساب الضريبة من البيانات الفعلية
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const quarter = quarters.find(q => q.value === selectedQuarter)!;
     const startDate = `${selectedYear}-${quarter.startMonth.toString().padStart(2, '0')}-01`;
     const endDate = new Date(selectedYear, quarter.endMonth, 0).toISOString().split('T')[0];
 
-    // هنا سيتم جلب البيانات الفعلية من المبيعات والمشتريات
-    // حالياً سنستخدم بيانات تجريبية
-    const mockSalesAmount = 100000 + Math.random() * 200000;
-    const mockPurchaseAmount = 60000 + Math.random() * 100000;
-    const salesVAT = mockSalesAmount * 0.15;
-    const purchaseVAT = mockPurchaseAmount * 0.15;
-    const netVAT = salesVAT - purchaseVAT;
+    // جلب البيانات الفعلية من المبيعات والمشتريات
+    const realTaxData = getTaxDataForPeriod(selectedYear, selectedQuarter);
 
     setTaxData({
-      salesVAT: Math.round(salesVAT),
-      purchaseVAT: Math.round(purchaseVAT),
-      netVAT: Math.round(netVAT),
-      salesAmount: Math.round(mockSalesAmount),
-      purchaseAmount: Math.round(mockPurchaseAmount),
+      salesVAT: Math.round(realTaxData.salesVAT),
+      purchaseVAT: Math.round(realTaxData.purchaseVAT),
+      netVAT: Math.round(realTaxData.netVAT),
+      salesAmount: Math.round(realTaxData.salesAmount),
+      purchaseAmount: Math.round(realTaxData.purchaseAmount),
       period: {
         year: selectedYear,
         quarter: selectedQuarter,

@@ -252,6 +252,47 @@ export const removeSupplierTransaction = (supplierId: string, transactionId: str
   });
 };
 
+// Remove transaction by invoice or voucher number
+export const removeCustomerTransactionByInvoice = (customerId: string, invoiceNumber: string): void => {
+  const account = customerAccounts[customerId];
+  if (!account) return;
+
+  const transaction = account.transactions.find(t => t.invoiceNumber === invoiceNumber);
+  if (transaction) {
+    removeCustomerTransaction(customerId, transaction.id);
+  }
+};
+
+export const removeSupplierTransactionByInvoice = (supplierId: string, invoiceNumber: string): void => {
+  const account = supplierAccounts[supplierId];
+  if (!account) return;
+
+  const transaction = account.transactions.find(t => t.invoiceNumber === invoiceNumber);
+  if (transaction) {
+    removeSupplierTransaction(supplierId, transaction.id);
+  }
+};
+
+export const removeCustomerTransactionByVoucher = (customerId: string, voucherNumber: string): void => {
+  const account = customerAccounts[customerId];
+  if (!account) return;
+
+  const transaction = account.transactions.find(t => t.voucherNumber === voucherNumber);
+  if (transaction) {
+    removeCustomerTransaction(customerId, transaction.id);
+  }
+};
+
+export const removeSupplierTransactionByVoucher = (supplierId: string, voucherNumber: string): void => {
+  const account = supplierAccounts[supplierId];
+  if (!account) return;
+
+  const transaction = account.transactions.find(t => t.voucherNumber === voucherNumber);
+  if (transaction) {
+    removeSupplierTransaction(supplierId, transaction.id);
+  }
+};
+
 // Get all accounts for tax reporting
 export const getAllCustomerAccounts = (): CustomerAccount[] => {
   return Object.values(customerAccounts);
@@ -259,4 +300,51 @@ export const getAllCustomerAccounts = (): CustomerAccount[] => {
 
 export const getAllSupplierAccounts = (): SupplierAccount[] => {
   return Object.values(supplierAccounts);
+};
+
+// Tax calculation functions
+export const getTaxDataForPeriod = (year: number, quarter: number) => {
+  const startMonth = (quarter - 1) * 3 + 1;
+  const endMonth = quarter * 3;
+  const startDate = new Date(year, startMonth - 1, 1);
+  const endDate = new Date(year, endMonth, 0);
+
+  let totalSalesVAT = 0;
+  let totalPurchaseVAT = 0;
+  let totalSalesAmount = 0;
+  let totalPurchaseAmount = 0;
+
+  // Calculate from customer accounts
+  Object.values(customerAccounts).forEach(account => {
+    account.transactions.forEach(transaction => {
+      const transactionDate = new Date(transaction.date);
+      if (transactionDate >= startDate && transactionDate <= endDate) {
+        if (transaction.type === 'sale') {
+          totalSalesAmount += transaction.amount;
+          totalSalesVAT += transaction.vatAmount || 0;
+        }
+      }
+    });
+  });
+
+  // Calculate from supplier accounts
+  Object.values(supplierAccounts).forEach(account => {
+    account.transactions.forEach(transaction => {
+      const transactionDate = new Date(transaction.date);
+      if (transactionDate >= startDate && transactionDate <= endDate) {
+        if (transaction.type === 'purchase') {
+          totalPurchaseAmount += transaction.amount;
+          totalPurchaseVAT += transaction.vatAmount || 0;
+        }
+      }
+    });
+  });
+
+  return {
+    salesAmount: totalSalesAmount,
+    purchaseAmount: totalPurchaseAmount,
+    salesVAT: totalSalesVAT,
+    purchaseVAT: totalPurchaseVAT,
+    netVAT: totalSalesVAT - totalPurchaseVAT
+  };
 };
