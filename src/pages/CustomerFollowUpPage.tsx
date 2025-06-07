@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ interface CustomerFollowUp {
   phone: string;
   description?: string;
   notes?: string;
-  lastPurchase?: string;
+  lastPurchase: string; // Changed from optional to required
   totalPurchases: number;
   averagePrice: number;
   totalAmount: number;
@@ -38,7 +39,7 @@ const mockCustomers: CustomerFollowUp[] = [
     phone: "0501234567",
     description: "عميل مميز",
     notes: "يفضل التوصيل صباحاً",
-    lastPurchase: "2024-01-15",
+    lastPurchase: "2024-01-15", // Now required
     totalPurchases: 15,
     averagePrice: 125.50,
     totalAmount: 1882.50,
@@ -56,7 +57,7 @@ const mockCustomers: CustomerFollowUp[] = [
     phone: "0507654321",
     description: "عميل جديد",
     notes: "",
-    lastPurchase: "2024-01-10",
+    lastPurchase: "2024-01-10", // Now required
     totalPurchases: 5,
     averagePrice: 85.00,
     totalAmount: 425.00,
