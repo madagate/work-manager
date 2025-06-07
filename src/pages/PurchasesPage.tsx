@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,29 +8,28 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { ShoppingCart, Plus, Search, CreditCard, Banknote, Smartphone, Calendar, Printer, FileText, Edit, Trash2 } from "lucide-react";
+import { ShoppingBag, Plus, Search, CreditCard, Banknote, Smartphone, Calendar, Printer, Edit } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { Sale, SaleItem } from "@/types/sales";
-import { printInvoice } from "@/utils/printUtils";
-import { addTransactionToCustomer, updateCustomerBalance, removeCustomerTransaction } from "@/utils/accountUtils";
+import { Purchase, PurchaseItem } from "@/types/purchases";
+import { addTransactionToSupplier } from "@/utils/accountUtils";
 
-interface Customer {
+interface Supplier {
   id: string;
-  customerCode: string;
+  supplierCode: string;
   name: string;
   phone: string;
   balance: number;
 }
 
-const mockCustomers: Customer[] = [
-  { id: "1", customerCode: "C001", name: "أحمد محمد السعدي", phone: "0501234567", balance: 1200 },
-  { id: "2", customerCode: "C002", name: "فاطمة علي الأحمد", phone: "0507654321", balance: -500 },
-  { id: "3", customerCode: "C003", name: "محمد عبدالله الحربي", phone: "0502345678", balance: 0 },
+const mockSuppliers: Supplier[] = [
+  { id: "1", supplierCode: "S001", name: "مورد البطاريات الأول", phone: "0501234567", balance: -800 },
+  { id: "2", supplierCode: "S002", name: "شركة الطاقة المتجددة", phone: "0507654321", balance: 0 },
+  { id: "3", supplierCode: "S003", name: "مؤسسة الكهرباء", phone: "0502345678", balance: -1200 },
 ];
 
 const batteryTypes = [
   "بطاريات عادية",
-  "بطاريات جافة",
+  "بطاريات جافة", 
   "بطاريات زجاج",
   "بطاريات تعبئة",
   "رصاص"
@@ -42,54 +42,54 @@ const paymentMethods = [
   { value: "credit", label: "آجل", icon: Calendar }
 ];
 
-const SalesPage = () => {
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [saleItems, setSaleItems] = useState<SaleItem[]>([
+const PurchasesPage = () => {
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([
     { id: "1", batteryType: "بطاريات عادية", quantity: 0, price: 0, total: 0 }
   ]);
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [searchTerm, setSearchTerm] = useState("");
-  const [recentSales, setRecentSales] = useState<Sale[]>([]);
+  const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
   const [vatEnabled, setVatEnabled] = useState(false);
-  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
 
-  const filteredCustomers = mockCustomers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm) ||
-    customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSuppliers = mockSuppliers.filter(supplier =>
+    supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    supplier.phone.includes(searchTerm) ||
+    supplier.supplierCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addSaleItem = () => {
-    const newItem: SaleItem = {
+  const addPurchaseItem = () => {
+    const newItem: PurchaseItem = {
       id: Date.now().toString(),
       batteryType: "بطاريات عادية",
       quantity: 0,
       price: 0,
       total: 0
     };
-    setSaleItems([...saleItems, newItem]);
+    setPurchaseItems([...purchaseItems, newItem]);
   };
 
-  const updateSaleItem = (index: number, field: keyof SaleItem, value: any) => {
-    const updatedItems = [...saleItems];
+  const updatePurchaseItem = (index: number, field: keyof PurchaseItem, value: any) => {
+    const updatedItems = [...purchaseItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     
     if (field === 'quantity' || field === 'price') {
       updatedItems[index].total = updatedItems[index].quantity * updatedItems[index].price;
     }
     
-    setSaleItems(updatedItems);
+    setPurchaseItems(updatedItems);
   };
 
-  const removeSaleItem = (index: number) => {
-    if (saleItems.length > 1) {
-      setSaleItems(saleItems.filter((_, i) => i !== index));
+  const removePurchaseItem = (index: number) => {
+    if (purchaseItems.length > 1) {
+      setPurchaseItems(purchaseItems.filter((_, i) => i !== index));
     }
   };
 
   const calculateSubtotal = () => {
-    return saleItems.reduce((sum, item) => sum + item.total, 0);
+    return purchaseItems.reduce((sum, item) => sum + item.total, 0);
   };
 
   const calculateTax = () => {
@@ -101,69 +101,26 @@ const SalesPage = () => {
     return calculateSubtotal() + calculateTax() - discount;
   };
 
-  const handlePrintInvoice = (sale: Sale) => {
-    printInvoice(sale);
-  };
-
-  const editSale = (sale: Sale) => {
-    setEditingSale(sale);
-    setSelectedCustomer(mockCustomers.find(c => c.id === sale.customerId) || null);
-    setSaleItems([...sale.items]);
-    setDiscount(sale.discount);
-    setPaymentMethod(sale.paymentMethod);
-    setVatEnabled(sale.tax > 0);
-  };
-
-  const updateSale = () => {
-    if (!editingSale || !selectedCustomer) return;
-
-    const updatedSale: Sale = {
-      ...editingSale,
-      customerId: selectedCustomer.id,
-      customerName: selectedCustomer.name,
-      items: [...saleItems],
-      subtotal: calculateSubtotal(),
-      discount,
-      tax: calculateTax(),
-      total: calculateTotal(),
-      paymentMethod,
-    };
-
-    setRecentSales(recentSales.map(sale => 
-      sale.id === editingSale.id ? updatedSale : sale
-    ));
-
-    toast({
-      title: "تم تحديث الفاتورة",
-      description: `تم تحديث فاتورة رقم ${editingSale.invoiceNumber} بنجاح`,
-      duration: 2000,
-    });
-
-    // Reset form
-    setEditingSale(null);
-    resetForm();
-  };
-
   const resetForm = () => {
-    setSelectedCustomer(null);
-    setSaleItems([{ id: "1", batteryType: "بطاريات عادية", quantity: 0, price: 0, total: 0 }]);
+    setSelectedSupplier(null);
+    setPurchaseItems([{ id: "1", batteryType: "بطاريات عادية", quantity: 0, price: 0, total: 0 }]);
     setDiscount(0);
     setPaymentMethod("cash");
     setVatEnabled(false);
   };
 
-  const generateInvoice = () => {
-    if (!selectedCustomer) {
+  const generatePurchaseInvoice = () => {
+    if (!selectedSupplier) {
       toast({
         title: "خطأ",
-        description: "يرجى اختيار العميل أولاً",
+        description: "يرجى اختيار المورد أولاً",
         variant: "destructive",
         duration: 2000,
       });
       return;
     }
 
-    if (saleItems.some(item => !item.quantity || !item.price)) {
+    if (purchaseItems.some(item => !item.quantity || !item.price)) {
       toast({
         title: "خطأ",
         description: "يرجى ملء جميع بيانات الأصناف",
@@ -173,14 +130,14 @@ const SalesPage = () => {
       return;
     }
 
-    const invoiceNumber = `INV-${Date.now()}`;
-    const newSale: Sale = {
+    const invoiceNumber = `PUR-${Date.now()}`;
+    const newPurchase: Purchase = {
       id: Date.now().toString(),
       invoiceNumber,
       date: new Date().toISOString().split('T')[0],
-      customerId: selectedCustomer.id,
-      customerName: selectedCustomer.name,
-      items: [...saleItems],
+      supplierId: selectedSupplier.id,
+      supplierName: selectedSupplier.name,
+      items: [...purchaseItems],
       subtotal: calculateSubtotal(),
       discount,
       tax: calculateTax(),
@@ -189,23 +146,23 @@ const SalesPage = () => {
       status: "completed"
     };
 
-    // Add to recent sales
-    setRecentSales([newSale, ...recentSales]);
+    // Add to recent purchases
+    setRecentPurchases([newPurchase, ...recentPurchases]);
 
-    // Handle customer balance and account statement for credit sales
+    // Handle supplier balance and account statement for credit purchases
     if (paymentMethod === 'credit') {
-      addTransactionToCustomer(selectedCustomer.id, {
-        date: newSale.date,
-        type: 'sale',
-        description: `فاتورة مبيعات رقم ${invoiceNumber}`,
-        amount: newSale.total,
+      addTransactionToSupplier(selectedSupplier.id, {
+        date: newPurchase.date,
+        type: 'purchase',
+        description: `فاتورة مشتريات رقم ${invoiceNumber}`,
+        amount: newPurchase.total,
         invoiceNumber,
-        vatAmount: newSale.tax
+        vatAmount: newPurchase.tax
       });
     }
 
     toast({
-      title: "تم إنشاء الفاتورة",
+      title: "تم إنشاء فاتورة المشتريات",
       description: `تم إنشاء فاتورة رقم ${invoiceNumber} بنجاح`,
       duration: 2000,
     });
@@ -214,35 +171,18 @@ const SalesPage = () => {
     resetForm();
   };
 
-  const handleDeleteSale = (sale: Sale) => {
-    // Remove from recent sales
-    setRecentSales(prev => prev.filter(s => s.id !== sale.id));
-    
-    // Remove transaction from customer account if it was a credit sale
-    if (sale.paymentMethod === 'credit') {
-      // Find the transaction and remove it
-      removeCustomerTransaction(sale.customerId, sale.id);
-    }
-
-    toast({
-      title: "تم حذف الفاتورة",
-      description: `تم حذف فاتورة رقم ${sale.invoiceNumber} وتحديث الحساب`,
-      duration: 2000,
-    });
-  };
-
-  const CustomerSearchDialog = () => (
+  const SupplierSearchDialog = () => (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" className="w-full flex items-center gap-2 flex-row-reverse">
           <Search className="w-4 h-4" />
-          {selectedCustomer ? selectedCustomer.name : "اختر العميل"}
+          {selectedSupplier ? selectedSupplier.name : "اختر المورد"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md" dir="rtl">
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            اختيار العميل
+            اختيار المورد
           </DialogTitle>
         </DialogHeader>
         
@@ -250,7 +190,7 @@ const SalesPage = () => {
           <div className="relative">
             <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="ابحث عن عميل..."
+              placeholder="ابحث عن مورد..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pr-10"
@@ -259,11 +199,11 @@ const SalesPage = () => {
           </div>
           
           <div className="max-h-60 overflow-y-auto space-y-2">
-            {filteredCustomers.map(customer => (
+            {filteredSuppliers.map(supplier => (
               <div
-                key={customer.id}
+                key={supplier.id}
                 onClick={() => {
-                  setSelectedCustomer(customer);
+                  setSelectedSupplier(supplier);
                   setSearchTerm("");
                 }}
                 className="p-3 border rounded cursor-pointer hover:bg-gray-50"
@@ -271,18 +211,18 @@ const SalesPage = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      {customer.name}
+                      {supplier.name}
                     </p>
-                    <p className="text-sm text-gray-600">{customer.phone}</p>
+                    <p className="text-sm text-gray-600">{supplier.phone}</p>
                     <Badge variant="secondary" className="mt-1">
-                      {customer.customerCode}
+                      {supplier.supplierCode}
                     </Badge>
                   </div>
                   <div className="text-left">
-                    <p className={`font-bold ${customer.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {customer.balance.toLocaleString()} ريال
+                    <p className={`font-bold ${supplier.balance <= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {Math.abs(supplier.balance).toLocaleString()} ريال
                     </p>
-                    <p className="text-xs text-gray-500">الرصيد</p>
+                    <p className="text-xs text-gray-500">المستحق</p>
                   </div>
                 </div>
               </div>
@@ -297,58 +237,58 @@ const SalesPage = () => {
     <div className="space-y-6">
       {/* Header */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-green-600 to-green-700 text-white">
+        <CardHeader className="bg-gradient-to-r from-orange-600 to-orange-700 text-white">
           <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-            {editingSale ? 'تعديل فاتورة المبيعات' : 'نظام المبيعات'}
+            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+            نظام المشتريات
           </CardTitle>
         </CardHeader>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Invoice Form */}
+        {/* Purchase Form */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                {editingSale ? `تعديل فاتورة ${editingSale.invoiceNumber}` : 'إنشاء فاتورة جديدة'}
+                إنشاء فاتورة مشتريات جديدة
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Customer Selection */}
+              {/* Supplier Selection */}
               <div>
-                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>العميل</Label>
-                <CustomerSearchDialog />
-                {selectedCustomer && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded border">
+                <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>المورد</Label>
+                <SupplierSearchDialog />
+                {selectedSupplier && (
+                  <div className="mt-2 p-3 bg-orange-50 rounded border">
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          {selectedCustomer.name}
+                          {selectedSupplier.name}
                         </p>
-                        <p className="text-sm text-gray-600">{selectedCustomer.phone}</p>
+                        <p className="text-sm text-gray-600">{selectedSupplier.phone}</p>
                       </div>
                       <div className="text-left">
-                        <p className={`font-bold ${selectedCustomer.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {selectedCustomer.balance.toLocaleString()} ريال
+                        <p className={`font-bold ${selectedSupplier.balance <= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {Math.abs(selectedSupplier.balance).toLocaleString()} ريال
                         </p>
-                        <p className="text-xs text-gray-500">الرصيد الحالي</p>
+                        <p className="text-xs text-gray-500">المستحق الحالي</p>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Sale Items */}
+              {/* Purchase Items */}
               <div>
                 <Label style={{ fontFamily: 'Tajawal, sans-serif' }}>أصناف الفاتورة</Label>
                 <div className="space-y-3 mt-2">
-                  {saleItems.map((item, index) => (
+                  {purchaseItems.map((item, index) => (
                     <div key={item.id} className="grid grid-cols-12 gap-2 items-end">
                       <div className="col-span-4">
                         <Select
                           value={item.batteryType}
-                          onValueChange={(value) => updateSaleItem(index, 'batteryType', value)}
+                          onValueChange={(value) => updatePurchaseItem(index, 'batteryType', value)}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -367,7 +307,7 @@ const SalesPage = () => {
                           type="number"
                           placeholder="الكمية"
                           value={item.quantity || ''}
-                          onChange={(e) => updateSaleItem(index, 'quantity', Number(e.target.value) || 0)}
+                          onChange={(e) => updatePurchaseItem(index, 'quantity', Number(e.target.value) || 0)}
                         />
                       </div>
                       <div className="col-span-2">
@@ -375,7 +315,7 @@ const SalesPage = () => {
                           type="number"
                           placeholder="السعر"
                           value={item.price || ''}
-                          onChange={(e) => updateSaleItem(index, 'price', Number(e.target.value) || 0)}
+                          onChange={(e) => updatePurchaseItem(index, 'price', Number(e.target.value) || 0)}
                         />
                       </div>
                       <div className="col-span-2">
@@ -389,8 +329,8 @@ const SalesPage = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => removeSaleItem(index)}
-                          disabled={saleItems.length === 1}
+                          onClick={() => removePurchaseItem(index)}
+                          disabled={purchaseItems.length === 1}
                         >
                           حذف
                         </Button>
@@ -399,7 +339,7 @@ const SalesPage = () => {
                   ))}
                 </div>
                 <Button
-                  onClick={addSaleItem}
+                  onClick={addPurchaseItem}
                   variant="outline"
                   className="mt-3 w-full flex items-center gap-2"
                   style={{ fontFamily: 'Tajawal, sans-serif' }}
@@ -451,33 +391,19 @@ const SalesPage = () => {
                 />
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={editingSale ? updateSale : generateInvoice}
-                  className="flex-1"
-                  style={{ fontFamily: 'Tajawal, sans-serif' }}
-                >
-                  {editingSale ? 'تحديث الفاتورة' : 'إنشاء الفاتورة'}
-                </Button>
-                {editingSale && (
-                  <Button
-                    onClick={() => {
-                      setEditingSale(null);
-                      resetForm();
-                    }}
-                    variant="outline"
-                    style={{ fontFamily: 'Tajawal, sans-serif' }}
-                  >
-                    إلغاء
-                  </Button>
-                )}
-              </div>
+              {/* Action Button */}
+              <Button
+                onClick={generatePurchaseInvoice}
+                className="w-full"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              >
+                إنشاء فاتورة المشتريات
+              </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Invoice Summary */}
+        {/* Purchase Summary */}
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -503,68 +429,51 @@ const SalesPage = () => {
               <div className="border-t pt-4">
                 <div className="flex justify-between text-lg">
                   <span className="font-bold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي:</span>
-                  <span className="font-bold text-green-600">{calculateTotal().toLocaleString()} ريال</span>
+                  <span className="font-bold text-orange-600">{calculateTotal().toLocaleString()} ريال</span>
                 </div>
               </div>
               
               {paymentMethod === 'credit' && (
                 <div className="bg-yellow-50 p-3 rounded border">
                   <p className="text-sm text-yellow-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    ملاحظة: سيتم إضافة هذا المبلغ لرصيد العميل في حالة البيع الآجل
+                    ملاحظة: سيتم إضافة هذا المبلغ لرصيد المورد في حالة الشراء الآجل
                   </p>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Recent Sales */}
-          {recentSales.length > 0 && (
+          {/* Recent Purchases */}
+          {recentPurchases.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  آخر المبيعات
+                  آخر المشتريات
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentSales.slice(0, 5).map(sale => (
-                    <div key={sale.id} className="p-3 border rounded">
+                  {recentPurchases.slice(0, 5).map(purchase => (
+                    <div key={purchase.id} className="p-3 border rounded">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="font-semibold text-sm">{sale.invoiceNumber}</p>
+                          <p className="font-semibold text-sm">{purchase.invoiceNumber}</p>
                           <p className="text-xs text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {sale.customerName}
+                            {purchase.supplierName}
                           </p>
-                          <Badge variant={sale.paymentMethod === 'credit' ? 'destructive' : 'default'} className="text-xs mt-1">
-                            {paymentMethods.find(m => m.value === sale.paymentMethod)?.label}
+                          <Badge variant={purchase.paymentMethod === 'credit' ? 'destructive' : 'default'} className="text-xs mt-1">
+                            {paymentMethods.find(m => m.value === purchase.paymentMethod)?.label}
                           </Badge>
                         </div>
                         <div className="text-left">
-                          <p className="font-bold text-green-600">{sale.total.toLocaleString()} ريال</p>
+                          <p className="font-bold text-orange-600">{purchase.total.toLocaleString()} ريال</p>
                           <div className="flex gap-1 mt-1">
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              onClick={() => handlePrintInvoice(sale)}
                               title="طباعة"
                             >
                               <Printer className="w-3 h-3" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={() => editSale(sale)}
-                              title="تعديل"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button 
-                              variant="destructive" 
-                              size="sm" 
-                              onClick={() => handleDeleteSale(sale)}
-                              title="حذف"
-                            >
-                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>
@@ -581,4 +490,4 @@ const SalesPage = () => {
   );
 };
 
-export default SalesPage;
+export default PurchasesPage;

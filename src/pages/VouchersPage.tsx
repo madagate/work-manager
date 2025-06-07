@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { FileText, Search, Plus, Calendar, DollarSign, TrendingUp, Users, Edit, Printer } from "lucide-react";
+import { FileText, Search, Plus, Calendar, DollarSign, TrendingUp, Users, Edit, Printer, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CustomerSearchDialog } from "@/components/CustomerSearchDialog";
 import { SupplierSearchDialog } from "@/components/SupplierSearchDialog";
 import { EditVoucherDialog } from "@/components/EditVoucherDialog";
 import { printVoucher } from "@/utils/voucherPrintUtils";
+import { addTransactionToCustomer, addTransactionToSupplier, removeCustomerTransaction, removeSupplierTransaction } from "@/utils/accountUtils";
 
 interface Voucher {
   id: string;
@@ -138,6 +139,26 @@ const VouchersPage = () => {
     };
 
     setVouchers(prev => [...prev, voucher]);
+
+    // Add transaction to account
+    if (newVoucher.entityType === "customer") {
+      addTransactionToCustomer(newVoucher.entityId, {
+        date: voucher.date,
+        type: voucher.type,
+        description: `${voucher.type === "receipt" ? "سند قبض" : "سند دفع"} رقم ${voucher.voucherNumber}`,
+        amount: voucher.amount,
+        voucherNumber: voucher.voucherNumber
+      });
+    } else {
+      addTransactionToSupplier(newVoucher.entityId, {
+        date: voucher.date,
+        type: voucher.type === "payment" ? "payment" : "receipt",
+        description: `${voucher.type === "receipt" ? "سند قبض" : "سند دفع"} رقم ${voucher.voucherNumber}`,
+        amount: voucher.amount,
+        voucherNumber: voucher.voucherNumber
+      });
+    }
+
     setNewVoucher({
       date: new Date().toISOString().split('T')[0],
       type: "receipt",
@@ -180,6 +201,37 @@ const VouchersPage = () => {
     toast({
       title: "طباعة السند",
       description: "تم إرسال السند للطباعة",
+    });
+  };
+
+  const handleDeleteVoucher = (voucher: Voucher) => {
+    // Remove from vouchers list
+    setVouchers(prev => prev.filter(v => v.id !== voucher.id));
+    
+    // Remove transaction from account
+    if (voucher.entityType === "customer") {
+      // Find and remove the transaction
+      const transactions = vouchers.filter(v => 
+        v.entityId === voucher.entityId && 
+        v.voucherNumber === voucher.voucherNumber
+      );
+      if (transactions.length > 0) {
+        removeCustomerTransaction(voucher.entityId, transactions[0].id);
+      }
+    } else {
+      // Find and remove the transaction
+      const transactions = vouchers.filter(v => 
+        v.entityId === voucher.entityId && 
+        v.voucherNumber === voucher.voucherNumber
+      );
+      if (transactions.length > 0) {
+        removeSupplierTransaction(voucher.entityId, transactions[0].id);
+      }
+    }
+
+    toast({
+      title: "تم الحذف",
+      description: "تم حذف السند وتحديث الحساب بنجاح",
     });
   };
 
@@ -426,6 +478,15 @@ const VouchersPage = () => {
                         >
                           <Printer className="w-3 h-3" />
                           طباعة
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteVoucher(voucher)}
+                          variant="destructive"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          حذف
                         </Button>
                       </div>
                     </td>
