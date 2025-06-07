@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Truck, Search, Calendar, TrendingUp, User, Package, DollarSign, Edit3, Save, X, Ban, UserPlus, FileDown, RefreshCw, FileText, MessageCircle, CheckCircle } from "lucide-react";
+import { Truck, Search, Calendar, TrendingUp, User, Package, DollarSign, Edit3, Save, X, Ban, UserPlus, FileDown, RefreshCw, FileText, MessageCircle, CheckCircle, Edit } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { AddSupplierDialog } from "@/components/AddSupplierDialog";
 import { SupplierDetailsDialog } from "@/components/SupplierDetailsDialog";
+import { EditSupplierDialog } from "@/components/EditSupplierDialog";
 
 interface Purchase {
   id: string;
@@ -113,6 +113,8 @@ const SupplierFollowUp = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingSupplierData, setEditingSupplierData] = useState<Supplier | null>(null);
 
   const filteredSuppliers = suppliers.filter(supplier =>
     supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -239,6 +241,39 @@ const SupplierFollowUp = () => {
     const diffTime = Math.abs(today.getTime() - messageDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  };
+
+  const sendWhatsAppMessage = (supplier: Supplier) => {
+    const message = `مرحباً ${supplier.name}، نود التواصل معكم بخصوص التوريدات.`;
+    const whatsappUrl = `https://wa.me/${supplier.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    setSuppliers(prev => prev.map(s => 
+      s.id === supplier.id 
+        ? { 
+            ...s, 
+            messageSent: true, 
+            lastMessageSent: new Date().toISOString().split('T')[0] 
+          }
+        : s
+    ));
+    
+    toast({
+      title: "تم فتح واتساب",
+      description: `تم فتح محادثة واتساب مع المورد: ${supplier.name}`,
+      duration: 2000,
+    });
+  };
+
+  const handleEditSupplier = (supplier: Supplier) => {
+    setEditingSupplierData(supplier);
+    setShowEditDialog(true);
+  };
+
+  const handleSupplierUpdated = (updatedSupplier: Supplier) => {
+    setSuppliers(prev => prev.map(s => 
+      s.id === updatedSupplier.id ? updatedSupplier : s
+    ));
   };
 
   return (
@@ -487,17 +522,28 @@ const SupplierFollowUp = () => {
                     عرض التفاصيل وكشف الحساب
                   </Button>
 
-                  <div className="grid grid-cols-2 gap-1">
+                  <div className="grid grid-cols-3 gap-1">
                     <Button
-                      onClick={() => sendMessageToSupplier(supplier.id)}
+                      onClick={() => sendWhatsAppMessage(supplier)}
                       variant="outline"
                       size="sm"
-                      className="flex items-center gap-1 flex-row-reverse text-xs"
+                      className="flex items-center gap-1 flex-row-reverse text-xs bg-green-50 hover:bg-green-100"
                       style={{ fontFamily: 'Tajawal, sans-serif' }}
                       disabled={supplier.messageSent && getDaysSinceLastMessage(supplier.lastMessageSent) < 7}
                     >
                       <MessageCircle className="w-3 h-3" />
-                      رسالة
+                      واتساب
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleEditSupplier(supplier)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 flex-row-reverse text-xs"
+                      style={{ fontFamily: 'Tajawal, sans-serif' }}
+                    >
+                      <Edit className="w-3 h-3" />
+                      تعديل
                     </Button>
                     
                     {supplier.isBlocked ? (
@@ -606,6 +652,13 @@ const SupplierFollowUp = () => {
         open={showDetailsDialog}
         onClose={() => setShowDetailsDialog(false)}
         supplier={selectedSupplier}
+      />
+
+      <EditSupplierDialog
+        open={showEditDialog}
+        onClose={() => setShowEditDialog(false)}
+        supplier={editingSupplierData}
+        onSupplierUpdated={handleSupplierUpdated}
       />
     </div>
   );
