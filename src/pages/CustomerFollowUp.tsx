@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,11 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Search, MessageCircle, Phone, Calendar, Filter, User, Package, DollarSign, Edit3, Save, X, Ban, BarChart } from "lucide-react";
+import { Users, Search, Phone, Calendar, Filter, User, Package, DollarSign, Edit3, Save, X, Ban, BarChart } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { CustomerDetailsDialog } from "@/components/CustomerDetailsDialog";
 
-interface Purchase {
+interface Sale {
   id: string;
   date: string;
   batteryType: string;
@@ -23,18 +24,18 @@ interface Purchase {
 
 interface Customer {
   id: string;
+  customerCode: string;
   name: string;
   phone: string;
-  lastPurchase: string;
-  totalPurchases: number;
+  description?: string;
+  lastSale: string;
+  totalSales: number;
   totalAmount: number;
   averagePrice: number;
-  messageSent?: boolean;
-  lastMessageSent?: string;
+  sales: Sale[];
   notes?: string;
   isBlocked?: boolean;
   blockReason?: string;
-  purchases: Purchase[];
   last2Quantities?: number[];
   last2Prices?: number[];
 }
@@ -43,124 +44,71 @@ interface Customer {
 const mockCustomers: Customer[] = [
   {
     id: "1",
+    customerCode: "C001",
     name: "أحمد محمد",
     phone: "0501234567",
-    lastPurchase: "2024-01-15",
-    totalPurchases: 15,
+    description: "عميل مميز وموثوق",
+    lastSale: "2024-01-15",
+    totalSales: 15,
     totalAmount: 4500,
     averagePrice: 300,
-    lastMessageSent: "2024-01-10",
     notes: "عميل مميز، يشتري بانتظام كل شهر",
-    purchases: [
-      { id: "p1", date: "2024-01-15", batteryType: "بطاريات عادية", quantity: 12, pricePerKg: 25, total: 300, discount: 0, finalTotal: 300 },
-      { id: "p2", date: "2024-01-10", batteryType: "بطاريات جافة", quantity: 8, pricePerKg: 30, total: 240, discount: 20, finalTotal: 220 }
+    sales: [
+      { id: "s1", date: "2024-01-15", batteryType: "بطاريات عادية", quantity: 12, pricePerKg: 25, total: 300, discount: 0, finalTotal: 300 },
+      { id: "s2", date: "2024-01-10", batteryType: "بطاريات جافة", quantity: 8, pricePerKg: 30, total: 240, discount: 20, finalTotal: 220 }
     ],
     last2Quantities: [12, 8],
     last2Prices: [25, 30]
   },
   {
     id: "2", 
+    customerCode: "C002",
     name: "فاطمة علي",
     phone: "0507654321",
-    lastPurchase: "2024-01-10",
-    totalPurchases: 8,
+    description: "تتعامل مع البطاريات اليابانية فقط",
+    lastSale: "2024-01-10",
+    totalSales: 8,
     totalAmount: 2400,
     averagePrice: 300,
     notes: "تفضل البطاريات اليابانية",
-    purchases: [
-      { id: "p3", date: "2024-01-10", batteryType: "بطاريات زجاج", quantity: 15, pricePerKg: 35, total: 525, discount: 50, finalTotal: 475 },
-      { id: "p4", date: "2024-01-05", batteryType: "بطاريات عادية", quantity: 10, pricePerKg: 28, total: 280, discount: 0, finalTotal: 280 }
+    sales: [
+      { id: "s3", date: "2024-01-10", batteryType: "بطاريات زجاج", quantity: 15, pricePerKg: 35, total: 525, discount: 50, finalTotal: 475 },
+      { id: "s4", date: "2024-01-05", batteryType: "بطاريات عادية", quantity: 10, pricePerKg: 28, total: 280, discount: 0, finalTotal: 280 }
     ],
     last2Quantities: [15, 10],
     last2Prices: [35, 28]
   },
   {
     id: "3",
+    customerCode: "C003",
     name: "خالد أحمد", 
     phone: "0501111111",
-    lastPurchase: "2024-01-05",
-    totalPurchases: 22,
+    lastSale: "2024-01-05",
+    totalSales: 22,
     totalAmount: 6600,
     averagePrice: 300,
-    lastMessageSent: "2024-01-01",
     isBlocked: true,
     blockReason: "مشاكل في الدفع",
-    purchases: [],
+    sales: [],
     last2Quantities: [0, 0],
     last2Prices: [0, 0]
-  },
-  {
-    id: "4",
-    name: "مريم سالم",
-    phone: "0502222222",
-    lastPurchase: "2024-01-20",
-    totalPurchases: 12,
-    totalAmount: 3600,
-    averagePrice: 300,
-    purchases: [
-      { id: "p5", date: "2024-01-20", batteryType: "بطاريات عادية", quantity: 20, pricePerKg: 26, total: 520, discount: 20, finalTotal: 500 },
-      { id: "p6", date: "2024-01-15", batteryType: "بطاريات جافة", quantity: 14, pricePerKg: 32, total: 448, discount: 0, finalTotal: 448 }
-    ],
-    last2Quantities: [20, 14],
-    last2Prices: [26, 32]
-  },
-  {
-    id: "5",
-    name: "عبدالله حسن",
-    phone: "0503333333",
-    lastPurchase: "2024-01-08",
-    totalPurchases: 18,
-    totalAmount: 5400,
-    averagePrice: 300,
-    lastMessageSent: "2024-01-05",
-    purchases: [
-      { id: "p7", date: "2024-01-08", batteryType: "بطاريات زجاج", quantity: 18, pricePerKg: 38, total: 684, discount: 50, finalTotal: 634 },
-      { id: "p8", date: "2024-01-03", batteryType: "بطاريات عادية", quantity: 16, pricePerKg: 24, total: 384, discount: 0, finalTotal: 384 }
-    ],
-    last2Quantities: [18, 16],
-    last2Prices: [38, 24]
-  },
-  {
-    id: "6",
-    name: "نورا أحمد",
-    phone: "0504444444",
-    lastPurchase: "2024-01-12",
-    totalPurchases: 25,
-    totalAmount: 7500,
-    averagePrice: 300,
-    purchases: [
-      { id: "p9", date: "2024-01-12", batteryType: "بطاريات جافة", quantity: 22, pricePerKg: 29, total: 638, discount: 30, finalTotal: 608 },
-      { id: "p10", date: "2024-01-07", batteryType: "بطاريات عادية", quantity: 25, pricePerKg: 27, total: 675, discount: 0, finalTotal: 675 }
-    ],
-    last2Quantities: [22, 25],
-    last2Prices: [29, 27]
   }
 ];
 
 const CustomerFollowUp = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
-  const [lastBuyFilter, setLastBuyFilter] = useState("all");
-  const [lastMessageFilter, setLastMessageFilter] = useState("all");
+  const [lastSaleFilter, setLastSaleFilter] = useState("all");
   const [editingCustomer, setEditingCustomer] = useState<string | null>(null);
   const [customerNotes, setCustomerNotes] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
 
   // Helper functions
-  const getDaysSinceLastPurchase = (lastPurchase: string) => {
+  const getDaysSinceLastSale = (lastSale: string) => {
     const today = new Date();
-    const purchaseDate = new Date(lastPurchase);
-    const diffTime = Math.abs(today.getTime() - purchaseDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
-  };
-
-  const getDaysSinceLastMessage = (lastMessage?: string) => {
-    if (!lastMessage) return null;
-    const today = new Date();
-    const messageDate = new Date(lastMessage);
-    const diffTime = Math.abs(today.getTime() - messageDate.getTime());
+    const saleDate = new Date(lastSale);
+    const diffTime = Math.abs(today.getTime() - saleDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
@@ -169,44 +117,15 @@ const CustomerFollowUp = () => {
     const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          customer.phone.includes(searchTerm);
     
-    const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
-    const daysSinceLastMessage = customer.lastMessageSent ? getDaysSinceLastMessage(customer.lastMessageSent) : null;
+    const daysSinceLastSale = getDaysSinceLastSale(customer.lastSale);
     
-    let matchesLastBuy = true;
-    if (lastBuyFilter === "recent") matchesLastBuy = daysSinceLastPurchase <= 7;
-    else if (lastBuyFilter === "week") matchesLastBuy = daysSinceLastPurchase > 7 && daysSinceLastPurchase <= 30;
-    else if (lastBuyFilter === "month") matchesLastBuy = daysSinceLastPurchase > 30;
+    let matchesLastSale = true;
+    if (lastSaleFilter === "recent") matchesLastSale = daysSinceLastSale <= 7;
+    else if (lastSaleFilter === "week") matchesLastSale = daysSinceLastSale > 7 && daysSinceLastSale <= 30;
+    else if (lastSaleFilter === "month") matchesLastSale = daysSinceLastSale > 30;
     
-    let matchesLastMessage = true;
-    if (lastMessageFilter === "sent") matchesLastMessage = !!customer.lastMessageSent;
-    else if (lastMessageFilter === "not_sent") matchesLastMessage = !customer.lastMessageSent;
-    else if (lastMessageFilter === "recent_sent") matchesLastMessage = daysSinceLastMessage !== null && daysSinceLastMessage <= 7;
-    
-    return matchesSearch && matchesLastBuy && matchesLastMessage;
+    return matchesSearch && matchesLastSale;
   });
-
-  const sendWhatsAppMessage = (customer: Customer) => {
-    const message = encodeURIComponent("مرحباً، طال انتظارنا لك في المحل. نتطلع لرؤيتك قريباً!");
-    const whatsappUrl = `https://wa.me/${customer.phone.replace(/^0/, '966')}?text=${message}`;
-    window.open(whatsappUrl, '_blank');
-    
-    // Update customer with message sent info and move to bottom
-    const today = new Date().toISOString().split('T')[0];
-    setCustomers(prev => {
-      const updatedCustomers = prev.map(c => 
-        c.id === customer.id ? { ...c, messageSent: true, lastMessageSent: today } : c
-      );
-      const sentCustomer = updatedCustomers.find(c => c.id === customer.id);
-      const otherCustomers = updatedCustomers.filter(c => c.id !== customer.id);
-      return sentCustomer ? [...otherCustomers, sentCustomer] : updatedCustomers;
-    });
-    
-    toast({
-      title: "تم إرسال الرسالة",
-      description: `تم إرسال رسالة واتساب إلى ${customer.name}`,
-      duration: 2000,
-    });
-  };
 
   const updateCustomerNotes = (customerId: string, notes: string) => {
     setCustomers(prev => prev.map(c => 
@@ -251,7 +170,7 @@ const CustomerFollowUp = () => {
             متابعة العملاء
           </h1>
           <p className="text-sm sm:text-base text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            تواصل مع العملاء وتابع حالة الرسائل المرسلة
+            متابعة عمليات البيع وإحصائيات العملاء
           </p>
         </div>
 
@@ -281,9 +200,9 @@ const CustomerFollowUp = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  فلترة حسب آخر شراء
+                  فلترة حسب آخر عملية بيع
                 </label>
-                <Select value={lastBuyFilter} onValueChange={setLastBuyFilter}>
+                <Select value={lastSaleFilter} onValueChange={setLastSaleFilter}>
                   <SelectTrigger className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                     <SelectValue />
                   </SelectTrigger>
@@ -296,28 +215,10 @@ const CustomerFollowUp = () => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  فلترة حسب رسائل الواتساب
-                </label>
-                <Select value={lastMessageFilter} onValueChange={setLastMessageFilter}>
-                  <SelectTrigger className="text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع العملاء</SelectItem>
-                    <SelectItem value="sent">تم إرسال رسالة</SelectItem>
-                    <SelectItem value="not_sent">لم يتم الإرسال</SelectItem>
-                    <SelectItem value="recent_sent">تم الإرسال مؤخراً</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="flex items-end">
                 <Button
                   onClick={() => {
-                    setLastBuyFilter("all");
-                    setLastMessageFilter("all");
+                    setLastSaleFilter("all");
                     setSearchTerm("");
                   }}
                   variant="outline"
@@ -335,15 +236,13 @@ const CustomerFollowUp = () => {
         {/* Customers Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
           {filteredCustomers.map(customer => {
-            const daysSinceLastPurchase = getDaysSinceLastPurchase(customer.lastPurchase);
-            const daysSinceLastMessage = getDaysSinceLastMessage(customer.lastMessageSent);
+            const daysSinceLastSale = getDaysSinceLastSale(customer.lastSale);
             
             return (
               <Card 
                 key={customer.id} 
                 className={`shadow-lg transition-all duration-300 hover:shadow-xl ${
-                  customer.isBlocked ? 'bg-red-50 border-red-300' :
-                  customer.messageSent ? 'bg-gray-50 border-gray-300' : 'bg-white border-blue-200'
+                  customer.isBlocked ? 'bg-red-50 border-red-300' : 'bg-white border-blue-200'
                 }`}
               >
                 <CardHeader className="pb-3 p-3 sm:p-4">
@@ -364,39 +263,34 @@ const CustomerFollowUp = () => {
                           محظور
                         </Badge>
                       )}
-                      {customer.messageSent && !customer.isBlocked && (
-                        <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
-                          تم الإرسال
-                        </Badge>
-                      )}
                     </div>
                   </div>
                 </CardHeader>
                 
                 <CardContent className="pt-0 p-3 sm:p-4">
                   <div className="space-y-3">
-                    {/* Purchase Info */}
+                    {/* Sale Info */}
                     <div className="bg-blue-50 rounded-lg p-2 sm:p-3">
                       <div className="flex items-center gap-2 flex-row-reverse mb-2">
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                         <span className="text-xs sm:text-sm font-semibold text-blue-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          آخر شراء
+                          آخر عملية بيع
                         </span>
                       </div>
                       <p className="text-xs sm:text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        {customer.lastPurchase}
+                        {customer.lastSale}
                       </p>
                       <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                        منذ {daysSinceLastPurchase} يوم
+                        منذ {daysSinceLastSale} يوم
                       </p>
                     </div>
 
-                    {/* Last 2 Purchases Info */}
+                    {/* Last 2 Sales Info */}
                     <div className="bg-green-50 rounded-lg p-2 sm:p-3">
                       <div className="flex items-center gap-2 flex-row-reverse mb-2">
                         <Package className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
                         <span className="text-xs sm:text-sm font-semibold text-green-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          آخر مشتريتين
+                          آخر عمليتي بيع
                         </span>
                       </div>
                       {customer.last2Quantities && customer.last2Prices ? (
@@ -412,40 +306,16 @@ const CustomerFollowUp = () => {
                         </div>
                       ) : (
                         <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          لا توجد مشتريات
+                          لا توجد مبيعات
                         </p>
                       )}
                     </div>
 
-                    {/* WhatsApp Message Info */}
-                    <div className="bg-yellow-50 rounded-lg p-2 sm:p-3">
-                      <div className="flex items-center gap-2 flex-row-reverse mb-2">
-                        <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-600" />
-                        <span className="text-xs sm:text-sm font-semibold text-yellow-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          آخر رسالة واتساب
-                        </span>
-                      </div>
-                      {customer.lastMessageSent ? (
-                        <>
-                          <p className="text-xs sm:text-sm text-gray-700 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {customer.lastMessageSent}
-                          </p>
-                          <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            منذ {daysSinceLastMessage} يوم
-                          </p>
-                        </>
-                      ) : (
-                        <p className="text-xs text-gray-500 text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                          لم يتم إرسال رسالة
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Purchase Stats */}
+                    {/* Sale Stats */}
                     <div className="grid grid-cols-3 gap-2 text-center">
                       <div className="bg-gray-50 rounded p-2">
                         <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>الكمية</p>
-                        <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalPurchases}</p>
+                        <p className="font-bold text-xs sm:text-sm" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.totalSales}</p>
                       </div>
                       <div className="bg-gray-50 rounded p-2">
                         <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجمالي</p>
@@ -540,21 +410,6 @@ const CustomerFollowUp = () => {
                       >
                         <BarChart className="w-3 h-3 sm:w-4 sm:h-4" />
                         إحصائيات العميل
-                      </Button>
-
-                      {/* WhatsApp Button */}
-                      <Button
-                        onClick={() => sendWhatsAppMessage(customer)}
-                        className={`w-full flex items-center gap-2 flex-row-reverse text-xs sm:text-sm ${
-                          customer.messageSent || customer.isBlocked
-                            ? 'bg-gray-400 hover:bg-gray-500' 
-                            : 'bg-green-600 hover:bg-green-700'
-                        } text-white`}
-                        style={{ fontFamily: 'Tajawal, sans-serif' }}
-                        disabled={customer.messageSent || customer.isBlocked}
-                      >
-                        <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                        {customer.isBlocked ? "محظور" : customer.messageSent ? "تم الإرسال" : "إرسال واتساب"}
                       </Button>
 
                       {/* Block/Unblock Button */}
