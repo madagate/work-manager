@@ -24,7 +24,6 @@ interface Customer {
   phone: string;
   description?: string;
   lastSale: string;
-  totalSales: number;
   totalAmount: number;
   averagePrice: number;
   sales: Sale[];
@@ -33,9 +32,6 @@ interface Customer {
   blockReason?: string;
   last2Quantities?: number[];
   last2Prices?: number[];
-  lastPurchase?: string;
-  totalPurchases?: number;
-  purchases?: Sale[];
 }
 
 interface CustomerStatisticsProps {
@@ -78,7 +74,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "عدد المبيعات" : "Total Sales"}
                     </p>
-                    <p className="text-2xl font-bold">{customer.totalSales || customer.totalPurchases || 0}</p>
+                    <p className="text-2xl font-bold">{customer.sales?.length || 0}</p>
                   </div>
                 </div>
               </CardContent>
@@ -108,7 +104,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "آخر بيع" : "Last Sale"}
                     </p>
-                    <p className="font-semibold">{customer.lastSale || customer.lastPurchase}</p>
+                    <p className="font-semibold">{customer.lastSale}</p>
                   </div>
                 </div>
               </CardContent>
@@ -123,7 +119,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                       {language === "ar" ? "متوسط البيع" : "Average Sale"}
                     </p>
                     <p className="font-semibold">
-                      {customer.averagePrice?.toLocaleString() || Math.round(customer.totalAmount / (customer.totalSales || customer.totalPurchases || 1)).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
+                      {customer.averagePrice.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
                     </p>
                   </div>
                 </div>
@@ -167,7 +163,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                     </tr>
                   </thead>
                   <tbody>
-                    {(customer.sales || customer.purchases || []).map((sale) => (
+                    {(customer.sales || []).map((sale) => (
                       <tr key={sale.id} className="border-b hover:bg-gray-50">
                         <td className="p-3">{sale.date}</td>
                         <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{sale.batteryType}</td>
@@ -228,7 +224,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                         </div>
                         <div className={`flex items-center gap-4 text-sm text-gray-500 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalSales || customer.totalPurchases || 0}
+                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.sales?.length || 0}
                           </span>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {language === "ar" ? "إجمالي المبلغ:" : "Total Amount:"} {customer.totalAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}

@@ -12,33 +12,55 @@ interface Customer {
   name: string;
   phone: string;
   description?: string;
-  lastSale?: string;
-  totalSales?: number;
-  totalAmount?: number;
-  averagePrice?: number;
-  sales?: any[];
+  lastPurchase: string;
+  totalAmount: number;
+  averagePrice: number;
+  purchases: any[];
   notes?: string;
   isBlocked?: boolean;
   blockReason?: string;
   last2Quantities?: number[];
   last2Prices?: number[];
-  lastPurchase?: string;
-  totalPurchases?: number;
-  purchases?: any[];
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
 const mockCustomers: Customer[] = [
-  { id: "1", customerCode: "C001", name: "أحمد محمد", phone: "0501234567", lastSale: "2024-01-15" },
-  { id: "2", customerCode: "C002", name: "فاطمة علي", phone: "0507654321", lastSale: "2024-01-10" },
-  { id: "3", customerCode: "C003", name: "خالد أحمد", phone: "0501111111", lastSale: "2024-01-05" },
+  { 
+    id: "1", 
+    customerCode: "C001", 
+    name: "أحمد محمد", 
+    phone: "0501234567", 
+    lastPurchase: "2024-01-15",
+    totalAmount: 5000,
+    averagePrice: 1250,
+    purchases: []
+  },
+  { 
+    id: "2", 
+    customerCode: "C002", 
+    name: "فاطمة علي", 
+    phone: "0507654321", 
+    lastPurchase: "2024-01-10",
+    totalAmount: 3000,
+    averagePrice: 1000,
+    purchases: []
+  },
+  { 
+    id: "3", 
+    customerCode: "C003", 
+    name: "خالد أحمد", 
+    phone: "0501111111", 
+    lastPurchase: "2024-01-05",
+    totalAmount: 7500,
+    averagePrice: 1500,
+    purchases: []
+  },
 ];
 
 interface CustomerSearchDialogProps {
   open: boolean;
   onClose: () => void;
-  onCustomerSelect?: (customer: Customer) => void;
-  onSelectCustomer?: (customer: Customer) => void;
+  onSelectCustomer: (customer: Customer) => void;
   searchTerm?: string;
   language?: string;
 }
@@ -46,7 +68,6 @@ interface CustomerSearchDialogProps {
 export const CustomerSearchDialog = ({ 
   open, 
   onClose, 
-  onCustomerSelect, 
   onSelectCustomer,
   searchTerm = "",
   language = "ar" 
@@ -78,15 +99,13 @@ export const CustomerSearchDialog = ({
   };
 
   const handleCustomerAdded = (customer: Customer) => {
-    if (onCustomerSelect) onCustomerSelect(customer);
-    if (onSelectCustomer) onSelectCustomer(customer);
+    onSelectCustomer(customer);
     setShowAddCustomer(false);
     onClose();
   };
 
   const handleCustomerSelection = (customer: Customer) => {
-    if (onCustomerSelect) onCustomerSelect(customer);
-    if (onSelectCustomer) onSelectCustomer(customer);
+    onSelectCustomer(customer);
     onClose();
   };
 
@@ -154,9 +173,9 @@ export const CustomerSearchDialog = ({
                         <p className="text-sm text-gray-600">
                           {customer.phone}
                         </p>
-                        {customer.lastSale && (
+                        {customer.lastPurchase && (
                           <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "آخر شراء:" : "Last purchase:"} {customer.lastSale}
+                            {language === "ar" ? "آخر شراء:" : "Last purchase:"} {customer.lastPurchase}
                           </p>
                         )}
                       </div>
