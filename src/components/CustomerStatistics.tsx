@@ -21,10 +21,10 @@ interface Customer {
   id: string;
   name: string;
   phone: string;
-  lastPurchase?: string;
-  totalPurchases: number;
+  lastSale?: string;
+  totalSales: number;
   totalAmount: number;
-  purchases: Sale[];
+  sales: Sale[];
 }
 
 interface CustomerStatisticsProps {
@@ -37,10 +37,10 @@ const mockCustomers: Customer[] = [
     id: "1",
     name: "أحمد محمد",
     phone: "0501234567",
-    lastPurchase: "2024-01-15",
-    totalPurchases: 5,
+    lastSale: "2024-01-15",
+    totalSales: 5,
     totalAmount: 2500,
-    purchases: [
+    sales: [
       {
         id: "p1",
         date: "2024-01-15",
@@ -67,10 +67,10 @@ const mockCustomers: Customer[] = [
     id: "2",
     name: "فاطمة علي",
     phone: "0507654321",
-    lastPurchase: "2024-01-10",
-    totalPurchases: 3,
+    lastSale: "2024-01-10",
+    totalSales: 3,
     totalAmount: 1800,
-    purchases: [
+    sales: [
       {
         id: "p3",
         date: "2024-01-10",
@@ -121,7 +121,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "عدد المبيعات" : "Total Sales"}
                     </p>
-                    <p className="text-2xl font-bold">{customer.totalPurchases}</p>
+                    <p className="text-2xl font-bold">{customer.totalSales}</p>
                   </div>
                 </div>
               </CardContent>
@@ -151,7 +151,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "آخر بيع" : "Last Sale"}
                     </p>
-                    <p className="font-semibold">{customer.lastPurchase}</p>
+                    <p className="font-semibold">{customer.lastSale}</p>
                   </div>
                 </div>
               </CardContent>
@@ -166,7 +166,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                       {language === "ar" ? "متوسط البيع" : "Average Sale"}
                     </p>
                     <p className="font-semibold">
-                      {Math.round(customer.totalAmount / customer.totalPurchases).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
+                      {Math.round(customer.totalAmount / customer.totalSales).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
                     </p>
                   </div>
                 </div>
@@ -210,15 +210,15 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                     </tr>
                   </thead>
                   <tbody>
-                    {customer.purchases.map((purchase) => (
-                      <tr key={purchase.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3">{purchase.date}</td>
-                        <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{purchase.batteryType}</td>
-                        <td className="p-3">{purchase.quantity}</td>
-                        <td className="p-3">{purchase.pricePerKg}</td>
-                        <td className="p-3">{purchase.total.toLocaleString()}</td>
-                        <td className="p-3">{purchase.discount.toLocaleString()}</td>
-                        <td className="p-3 font-bold text-green-600">{purchase.finalTotal.toLocaleString()}</td>
+                    {customer.sales.map((sale) => (
+                      <tr key={sale.id} className="border-b hover:bg-gray-50">
+                        <td className="p-3">{sale.date}</td>
+                        <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{sale.batteryType}</td>
+                        <td className="p-3">{sale.quantity}</td>
+                        <td className="p-3">{sale.pricePerKg}</td>
+                        <td className="p-3">{sale.total.toLocaleString()}</td>
+                        <td className="p-3">{sale.discount.toLocaleString()}</td>
+                        <td className="p-3 font-bold text-green-600">{sale.finalTotal.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -271,7 +271,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                         </div>
                         <div className={`flex items-center gap-4 text-sm text-gray-500 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalPurchases}
+                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalSales}
                           </span>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {language === "ar" ? "إجمالي المبلغ:" : "Total Amount:"} {customer.totalAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}

@@ -11,14 +11,14 @@ interface Customer {
   customerCode: string;
   name: string;
   phone: string;
-  lastPurchase?: string;
+  lastSale?: string;
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
 const mockCustomers: Customer[] = [
-  { id: "1", customerCode: "C001", name: "أحمد محمد", phone: "0501234567", lastPurchase: "2024-01-15" },
-  { id: "2", customerCode: "C002", name: "فاطمة علي", phone: "0507654321", lastPurchase: "2024-01-10" },
-  { id: "3", customerCode: "C003", name: "خالد أحمد", phone: "0501111111", lastPurchase: "2024-01-05" },
+  { id: "1", customerCode: "C001", name: "أحمد محمد", phone: "0501234567", lastSale: "2024-01-15" },
+  { id: "2", customerCode: "C002", name: "فاطمة علي", phone: "0507654321", lastSale: "2024-01-10" },
+  { id: "3", customerCode: "C003", name: "خالد أحمد", phone: "0501111111", lastSale: "2024-01-05" },
 ];
 
 interface CustomerSearchDialogProps {
@@ -132,9 +132,9 @@ export const CustomerSearchDialog = ({
                         <p className="text-sm text-gray-600">
                           {customer.phone}
                         </p>
-                        {customer.lastPurchase && (
+                        {customer.lastSale && (
                           <p className="text-xs text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "آخر شراء:" : "Last purchase:"} {customer.lastPurchase}
+                            {language === "ar" ? "آخر شراء:" : "Last purchase:"} {customer.lastSale}
                           </p>
                         )}
                       </div>
