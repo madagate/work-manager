@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,12 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-15",
     totalAmount: 5000,
     averagePrice: 1250,
-    purchases: []
+    purchases: [],
+    totalPurchases: 4,
+    totalSales: 4,
+    salesCount: 4,
+    lastSale: "2024-01-15",
+    sales: []
   },
   { 
     id: "2", 
@@ -27,7 +31,12 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-10",
     totalAmount: 3000,
     averagePrice: 1000,
-    purchases: []
+    purchases: [],
+    totalPurchases: 3,
+    totalSales: 3,
+    salesCount: 3,
+    lastSale: "2024-01-10",
+    sales: []
   },
   { 
     id: "3", 
@@ -37,7 +46,12 @@ const mockCustomers: Customer[] = [
     lastPurchase: "2024-01-05",
     totalAmount: 7500,
     averagePrice: 1500,
-    purchases: []
+    purchases: [],
+    totalPurchases: 5,
+    totalSales: 5,
+    salesCount: 5,
+    lastSale: "2024-01-05",
+    sales: []
   },
 ];
 
