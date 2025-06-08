@@ -21,7 +21,53 @@ interface Task {
 }
 
 export const TaskList = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: "1",
+      title: "مراجعة فواتير الموردين",
+      description: "مراجعة فواتير شهر يناير وتدقيق الأرقام",
+      completed: false,
+      priority: "عالية",
+      dueDate: "2024-01-25",
+      createdAt: "2024-01-20T10:00:00Z"
+    },
+    {
+      id: "2",
+      title: "تحديث أسعار البطاريات",
+      description: "تحديث قائمة الأسعار للعملاء الجدد",
+      completed: true,
+      priority: "متوسطة",
+      dueDate: "2024-01-22",
+      createdAt: "2024-01-18T14:30:00Z"
+    },
+    {
+      id: "3",
+      title: "جرد المخزن الشهري",
+      description: "عمل جرد شامل لجميع أنواع البطاريات",
+      completed: false,
+      priority: "عالية",
+      dueDate: "2024-01-30",
+      createdAt: "2024-01-15T09:15:00Z"
+    },
+    {
+      id: "4",
+      title: "متابعة مديونيات العملاء",
+      description: "الاتصال بالعملاء المتأخرين في السداد",
+      completed: false,
+      priority: "متوسطة",
+      dueDate: "2024-01-28",
+      createdAt: "2024-01-19T16:45:00Z"
+    },
+    {
+      id: "5",
+      title: "تنظيف وترتيب المتجر",
+      description: "تنظيف عام وترتيب البطاريات حسب الأنواع",
+      completed: true,
+      priority: "منخفضة",
+      createdAt: "2024-01-17T08:00:00Z"
+    }
+  ]);
+  
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -168,7 +214,9 @@ export const TaskList = () => {
             tasks.map((task) => (
               <div
                 key={task.id}
-                className={`border rounded-lg p-3 ${task.completed ? 'bg-gray-50' : 'bg-white'}`}
+                className={`border rounded-lg p-3 transition-all duration-200 ${
+                  task.completed ? 'bg-gray-50 border-green-200' : 'bg-white border-gray-200'
+                }`}
               >
                 <div className="flex items-start gap-3">
                   <Checkbox
@@ -179,16 +227,33 @@ export const TaskList = () => {
                   
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className={`font-medium ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                      <h4 
+                        className={`font-medium transition-all duration-200 ${
+                          task.completed 
+                            ? 'line-through text-gray-500 decoration-2' 
+                            : 'text-gray-900'
+                        }`}
+                        style={{ fontFamily: 'Tajawal, sans-serif' }}
+                      >
                         {task.title}
                       </h4>
-                      <Badge className={getPriorityColor(task.priority)}>
+                      <Badge className={`${getPriorityColor(task.priority)} text-white`}>
                         {task.priority}
                       </Badge>
+                      {task.completed && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          مكتملة ✓
+                        </Badge>
+                      )}
                     </div>
                     
                     {task.description && (
-                      <p className={`text-sm text-gray-600 mb-2 ${task.completed ? 'line-through' : ''}`}>
+                      <p 
+                        className={`text-sm text-gray-600 mb-2 transition-all duration-200 ${
+                          task.completed ? 'line-through decoration-1' : ''
+                        }`}
+                        style={{ fontFamily: 'Tajawal, sans-serif' }}
+                      >
                         {task.description}
                       </p>
                     )}
@@ -199,9 +264,11 @@ export const TaskList = () => {
                         {new Date(task.createdAt).toLocaleDateString('ar-SA')}
                       </div>
                       {task.dueDate && (
-                        <div className="flex items-center gap-1">
+                        <div className={`flex items-center gap-1 ${
+                          task.completed ? 'line-through' : ''
+                        }`}>
                           <Clock className="w-3 h-3" />
-                          {new Date(task.dueDate).toLocaleDateString('ar-SA')}
+                          موعد الانتهاء: {new Date(task.dueDate).toLocaleDateString('ar-SA')}
                         </div>
                       )}
                     </div>
@@ -211,6 +278,7 @@ export const TaskList = () => {
                     variant="destructive"
                     size="sm"
                     onClick={() => deleteTask(task.id)}
+                    className="opacity-70 hover:opacity-100"
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
