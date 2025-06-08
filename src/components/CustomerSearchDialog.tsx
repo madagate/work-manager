@@ -11,7 +11,20 @@ interface Customer {
   customerCode: string;
   name: string;
   phone: string;
+  description?: string;
   lastSale?: string;
+  totalSales?: number;
+  totalAmount?: number;
+  averagePrice?: number;
+  sales?: any[];
+  notes?: string;
+  isBlocked?: boolean;
+  blockReason?: string;
+  last2Quantities?: number[];
+  last2Prices?: number[];
+  lastPurchase?: string;
+  totalPurchases?: number;
+  purchases?: any[];
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -24,7 +37,8 @@ const mockCustomers: Customer[] = [
 interface CustomerSearchDialogProps {
   open: boolean;
   onClose: () => void;
-  onCustomerSelect: (customer: Customer) => void;
+  onCustomerSelect?: (customer: Customer) => void;
+  onSelectCustomer?: (customer: Customer) => void;
   searchTerm?: string;
   language?: string;
 }
@@ -33,6 +47,7 @@ export const CustomerSearchDialog = ({
   open, 
   onClose, 
   onCustomerSelect, 
+  onSelectCustomer,
   searchTerm = "",
   language = "ar" 
 }: CustomerSearchDialogProps) => {
@@ -63,8 +78,15 @@ export const CustomerSearchDialog = ({
   };
 
   const handleCustomerAdded = (customer: Customer) => {
-    onCustomerSelect(customer);
+    if (onCustomerSelect) onCustomerSelect(customer);
+    if (onSelectCustomer) onSelectCustomer(customer);
     setShowAddCustomer(false);
+    onClose();
+  };
+
+  const handleCustomerSelection = (customer: Customer) => {
+    if (onCustomerSelect) onCustomerSelect(customer);
+    if (onSelectCustomer) onSelectCustomer(customer);
     onClose();
   };
 
@@ -115,7 +137,7 @@ export const CustomerSearchDialog = ({
                 filteredCustomers.map(customer => (
                   <div
                     key={customer.id}
-                    onClick={() => onCustomerSelect(customer)}
+                    onClick={() => handleCustomerSelection(customer)}
                     className="p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition-colors"
                   >
                     <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>

@@ -19,79 +19,34 @@ interface Sale {
 
 interface Customer {
   id: string;
+  customerCode: string;
   name: string;
   phone: string;
-  lastPurchase: string;
-  totalPurchases: number;
+  description?: string;
+  lastSale: string;
+  totalSales: number;
   totalAmount: number;
-  purchases: Sale[];
+  averagePrice: number;
+  sales: Sale[];
+  notes?: string;
+  isBlocked?: boolean;
+  blockReason?: string;
+  last2Quantities?: number[];
+  last2Prices?: number[];
+  lastPurchase?: string;
+  totalPurchases?: number;
+  purchases?: Sale[];
 }
 
 interface CustomerStatisticsProps {
   language?: string;
-  customers?: Customer[];
+  customers: Customer[];
 }
 
-export const CustomerStatistics = ({ language = "ar", customers: externalCustomers }: CustomerStatisticsProps) => {
+export const CustomerStatistics = ({ language = "ar", customers }: CustomerStatisticsProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   
   const isRTL = language === "ar";
-  
-  // Mock data for demonstration - use external customers if provided
-  const mockCustomers: Customer[] = [
-    {
-      id: "1",
-      name: "أحمد محمد",
-      phone: "0501234567",
-      lastPurchase: "2024-01-15",
-      totalPurchases: 5,
-      totalAmount: 2500,
-      purchases: [
-        {
-          id: "p1",
-          date: "2024-01-15",
-          batteryType: "بطاريات عادية",
-          quantity: 10,
-          pricePerKg: 25,
-          total: 250,
-          discount: 0,
-          finalTotal: 250
-        },
-        {
-          id: "p2",
-          date: "2024-01-10",
-          batteryType: "بطاريات جافة",
-          quantity: 15,
-          pricePerKg: 30,
-          total: 450,
-          discount: 50,
-          finalTotal: 400
-        }
-      ]
-    },
-    {
-      id: "2",
-      name: "فاطمة علي",
-      phone: "0507654321",
-      lastPurchase: "2024-01-10",
-      totalPurchases: 3,
-      totalAmount: 1800,
-      purchases: [
-        {
-          id: "p3",
-          date: "2024-01-10",
-          batteryType: "بطاريات زجاج",
-          quantity: 20,
-          pricePerKg: 35,
-          total: 700,
-          discount: 100,
-          finalTotal: 600
-        }
-      ]
-    }
-  ];
-
-  const customers = externalCustomers || mockCustomers;
   
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,7 +78,7 @@ export const CustomerStatistics = ({ language = "ar", customers: externalCustome
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "عدد المبيعات" : "Total Sales"}
                     </p>
-                    <p className="text-2xl font-bold">{customer.totalPurchases}</p>
+                    <p className="text-2xl font-bold">{customer.totalSales || customer.totalPurchases || 0}</p>
                   </div>
                 </div>
               </CardContent>
@@ -153,7 +108,7 @@ export const CustomerStatistics = ({ language = "ar", customers: externalCustome
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "آخر بيع" : "Last Sale"}
                     </p>
-                    <p className="font-semibold">{customer.lastPurchase}</p>
+                    <p className="font-semibold">{customer.lastSale || customer.lastPurchase}</p>
                   </div>
                 </div>
               </CardContent>
@@ -168,7 +123,7 @@ export const CustomerStatistics = ({ language = "ar", customers: externalCustome
                       {language === "ar" ? "متوسط البيع" : "Average Sale"}
                     </p>
                     <p className="font-semibold">
-                      {Math.round(customer.totalAmount / customer.totalPurchases).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
+                      {customer.averagePrice?.toLocaleString() || Math.round(customer.totalAmount / (customer.totalSales || customer.totalPurchases || 1)).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
                     </p>
                   </div>
                 </div>
@@ -212,7 +167,7 @@ export const CustomerStatistics = ({ language = "ar", customers: externalCustome
                     </tr>
                   </thead>
                   <tbody>
-                    {customer.purchases.map((sale) => (
+                    {(customer.sales || customer.purchases || []).map((sale) => (
                       <tr key={sale.id} className="border-b hover:bg-gray-50">
                         <td className="p-3">{sale.date}</td>
                         <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{sale.batteryType}</td>
@@ -273,7 +228,7 @@ export const CustomerStatistics = ({ language = "ar", customers: externalCustome
                         </div>
                         <div className={`flex items-center gap-4 text-sm text-gray-500 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalPurchases}
+                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalSales || customer.totalPurchases || 0}
                           </span>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {language === "ar" ? "إجمالي المبلغ:" : "Total Amount:"} {customer.totalAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
