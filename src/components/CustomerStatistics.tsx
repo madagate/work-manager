@@ -21,77 +21,79 @@ interface Customer {
   id: string;
   name: string;
   phone: string;
-  lastSale?: string;
-  totalSales: number;
+  lastPurchase: string;
+  totalPurchases: number;
   totalAmount: number;
-  sales: Sale[];
+  purchases: Sale[];
 }
 
 interface CustomerStatisticsProps {
   language?: string;
+  customers?: Customer[];
 }
 
-// Mock data for demonstration
-const mockCustomers: Customer[] = [
-  {
-    id: "1",
-    name: "أحمد محمد",
-    phone: "0501234567",
-    lastSale: "2024-01-15",
-    totalSales: 5,
-    totalAmount: 2500,
-    sales: [
-      {
-        id: "p1",
-        date: "2024-01-15",
-        batteryType: "بطاريات عادية",
-        quantity: 10,
-        pricePerKg: 25,
-        total: 250,
-        discount: 0,
-        finalTotal: 250
-      },
-      {
-        id: "p2",
-        date: "2024-01-10",
-        batteryType: "بطاريات جافة",
-        quantity: 15,
-        pricePerKg: 30,
-        total: 450,
-        discount: 50,
-        finalTotal: 400
-      }
-    ]
-  },
-  {
-    id: "2",
-    name: "فاطمة علي",
-    phone: "0507654321",
-    lastSale: "2024-01-10",
-    totalSales: 3,
-    totalAmount: 1800,
-    sales: [
-      {
-        id: "p3",
-        date: "2024-01-10",
-        batteryType: "بطاريات زجاج",
-        quantity: 20,
-        pricePerKg: 35,
-        total: 700,
-        discount: 100,
-        finalTotal: 600
-      }
-    ]
-  }
-];
-
-export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps) => {
+export const CustomerStatistics = ({ language = "ar", customers: externalCustomers }: CustomerStatisticsProps) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   
   const isRTL = language === "ar";
   
-  const filteredCustomers = mockCustomers.filter(customer =>
+  // Mock data for demonstration - use external customers if provided
+  const mockCustomers: Customer[] = [
+    {
+      id: "1",
+      name: "أحمد محمد",
+      phone: "0501234567",
+      lastPurchase: "2024-01-15",
+      totalPurchases: 5,
+      totalAmount: 2500,
+      purchases: [
+        {
+          id: "p1",
+          date: "2024-01-15",
+          batteryType: "بطاريات عادية",
+          quantity: 10,
+          pricePerKg: 25,
+          total: 250,
+          discount: 0,
+          finalTotal: 250
+        },
+        {
+          id: "p2",
+          date: "2024-01-10",
+          batteryType: "بطاريات جافة",
+          quantity: 15,
+          pricePerKg: 30,
+          total: 450,
+          discount: 50,
+          finalTotal: 400
+        }
+      ]
+    },
+    {
+      id: "2",
+      name: "فاطمة علي",
+      phone: "0507654321",
+      lastPurchase: "2024-01-10",
+      totalPurchases: 3,
+      totalAmount: 1800,
+      purchases: [
+        {
+          id: "p3",
+          date: "2024-01-10",
+          batteryType: "بطاريات زجاج",
+          quantity: 20,
+          pricePerKg: 35,
+          total: 700,
+          discount: 100,
+          finalTotal: 600
+        }
+      ]
+    }
+  ];
+
+  const customers = externalCustomers || mockCustomers;
+  
+  const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone.includes(searchTerm)
   );
@@ -121,7 +123,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "عدد المبيعات" : "Total Sales"}
                     </p>
-                    <p className="text-2xl font-bold">{customer.totalSales}</p>
+                    <p className="text-2xl font-bold">{customer.totalPurchases}</p>
                   </div>
                 </div>
               </CardContent>
@@ -151,7 +153,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "آخر بيع" : "Last Sale"}
                     </p>
-                    <p className="font-semibold">{customer.lastSale}</p>
+                    <p className="font-semibold">{customer.lastPurchase}</p>
                   </div>
                 </div>
               </CardContent>
@@ -166,7 +168,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                       {language === "ar" ? "متوسط البيع" : "Average Sale"}
                     </p>
                     <p className="font-semibold">
-                      {Math.round(customer.totalAmount / customer.totalSales).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
+                      {Math.round(customer.totalAmount / customer.totalPurchases).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
                     </p>
                   </div>
                 </div>
@@ -210,7 +212,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                     </tr>
                   </thead>
                   <tbody>
-                    {customer.sales.map((sale) => (
+                    {customer.purchases.map((sale) => (
                       <tr key={sale.id} className="border-b hover:bg-gray-50">
                         <td className="p-3">{sale.date}</td>
                         <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{sale.batteryType}</td>
@@ -271,7 +273,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                         </div>
                         <div className={`flex items-center gap-4 text-sm text-gray-500 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalSales}
+                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalPurchases}
                           </span>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {language === "ar" ? "إجمالي المبلغ:" : "Total Amount:"} {customer.totalAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
