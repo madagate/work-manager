@@ -1,231 +1,395 @@
-
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Search, Plus, Edit, Trash2, MessageSquare, Phone, ShoppingCart, DollarSign, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Edit, Trash2, Search, User, Mail, Phone, MapPin, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { CustomerDetailsDialog } from "@/components/CustomerDetailsDialog";
-import { EditCustomerDialog } from "@/components/EditCustomerDialog";
-import { AddCustomerDialog } from "@/components/AddCustomerDialog";
 
-interface CustomerFollowUp {
+interface Customer {
   id: string;
-  customerCode: string;
   name: string;
+  email: string;
   phone: string;
-  description?: string;
-  notes?: string;
-  lastPurchase: string; // Changed from optional to required
-  totalPurchases: number;
-  averagePrice: number;
-  totalAmount: number;
-  purchases: any[];
-  balance: number;
-  isBlocked?: boolean;
-  blockReason?: string;
-  messageSent?: boolean;
-  lastMessageSent?: string;
-  last2Quantities?: number[];
-  last2Prices?: number[];
-  last2BatteryTypes?: string[];
+  address: string;
+  ordersCount: number;
+  lastOrderDate: string;
+  createdAt: string;
 }
 
-const mockCustomers: CustomerFollowUp[] = [
+const mockCustomers: Customer[] = [
   {
     id: "1",
-    customerCode: "C001",
-    name: "أحمد محمد العلي",
-    phone: "0501234567",
-    description: "عميل مميز",
-    notes: "يفضل التوصيل صباحاً",
-    lastPurchase: "2024-01-15", // Now required
-    totalPurchases: 15,
-    averagePrice: 125.50,
-    totalAmount: 1882.50,
-    purchases: [],
-    balance: 250.00,
-    isBlocked: false,
-    messageSent: false,
-    last2Quantities: [50, 30],
-    last2Prices: [120, 130],
-    last2BatteryTypes: ["AA", "AAA"]
+    name: "أحمد محمد",
+    email: "ahmed.mohamed@example.com",
+    phone: "0555555555",
+    address: "الرياض، المملكة العربية السعودية",
+    ordersCount: 12,
+    lastOrderDate: "2024-01-25",
+    createdAt: "2023-03-15"
   },
   {
     id: "2",
-    customerCode: "C002",
-    name: "فاطمة عبدالله",
-    phone: "0507654321",
-    description: "عميل جديد",
-    notes: "",
-    lastPurchase: "2024-01-10", // Now required
-    totalPurchases: 5,
-    averagePrice: 85.00,
-    totalAmount: 425.00,
-    purchases: [],
-    balance: -150.00,
-    isBlocked: false,
-    messageSent: true,
-    lastMessageSent: "2024-01-12",
-    last2Quantities: [20, 15],
-    last2Prices: [80, 90],
-    last2BatteryTypes: ["C", "D"]
+    name: "ليلى خالد",
+    email: "laila.khaled@example.com",
+    phone: "0500000000",
+    address: "جدة، المملكة العربية السعودية",
+    ordersCount: 8,
+    lastOrderDate: "2024-02-01",
+    createdAt: "2023-05-20"
+  },
+  {
+    id: "3",
+    name: "سالم عبدالله",
+    email: "salem.abdullah@example.com",
+    phone: "0533333333",
+    address: "الدمام، المملكة العربية السعودية",
+    ordersCount: 5,
+    lastOrderDate: "2024-01-10",
+    createdAt: "2023-07-01"
+  },
+  {
+    id: "4",
+    name: "نورة علي",
+    email: "noura.ali@example.com",
+    phone: "0566666666",
+    address: "مكة، المملكة العربية السعودية",
+    ordersCount: 3,
+    lastOrderDate: "2023-12-15",
+    createdAt: "2023-09-10"
   }
 ];
 
-const CustomerFollowUpPage = () => {
-  const [customers, setCustomers] = useState<CustomerFollowUp[]>(mockCustomers);
+export default function CustomerFollowUpPage() {
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerFollowUp | null>(null);
-  const [showCustomerDetails, setShowCustomerDetails] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [blockReason, setBlockReason] = useState("");
-  const [showBlockDialog, setShowBlockDialog] = useState(false);
-  const [customerToBlock, setCustomerToBlock] = useState<CustomerFollowUp | null>(null);
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: ""
+  });
 
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone.includes(searchTerm) ||
-    customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase())
+    customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.address.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalCustomers = customers.length;
-  const blockedCustomers = customers.filter(c => c.isBlocked).length;
-  const totalBalance = customers.reduce((sum, c) => sum + c.balance, 0);
-  const totalSales = customers.reduce((sum, c) => sum + c.totalAmount, 0);
+  const handleAddCustomer = () => {
+    if (!newCustomer.name.trim() || !newCustomer.email.trim() || !newCustomer.phone.trim() || !newCustomer.address.trim()) {
+      toast({
+        title: "خطأ في البيانات",
+        description: "يرجى ملء جميع الحقول",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  const handleCustomerUpdated = (updatedCustomer: CustomerFollowUp) => {
-    setCustomers(prev => 
-      prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c)
+    const customer: Customer = {
+      id: Date.now().toString(),
+      ...newCustomer,
+      ordersCount: 0,
+      lastOrderDate: "غير محدد",
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    setCustomers(prev => [...prev, customer]);
+    setNewCustomer({ name: "", email: "", phone: "", address: "" });
+    setShowAddDialog(false);
+    
+    toast({
+      title: "تمت إضافة عميل",
+      description: `تمت إضافة العميل ${customer.name} بنجاح`,
+    });
+  };
+
+  const handleUpdateCustomer = (updatedCustomer: Customer) => {
+    setCustomers(prev =>
+      prev.map(customer =>
+        customer.id === updatedCustomer.id ? updatedCustomer : customer
+      )
     );
-    setSelectedCustomer(updatedCustomer);
-  };
-
-  const handleCustomerAdded = (newCustomer: CustomerFollowUp) => {
-    setCustomers(prev => [...prev, newCustomer]);
-  };
-
-  const handleViewDetails = (customer: CustomerFollowUp) => {
-    setSelectedCustomer(customer);
-    setShowCustomerDetails(true);
-  };
-
-  const handleEditCustomer = (customer: CustomerFollowUp) => {
-    setSelectedCustomer(customer);
-    setShowEditDialog(true);
+    setEditingCustomer(null);
+    
+    toast({
+      title: "تم تحديث العميل",
+      description: `تم تحديث بيانات العميل ${updatedCustomer.name} بنجاح`,
+    });
   };
 
   const handleDeleteCustomer = (customerId: string) => {
-    setCustomers(prev => prev.filter(c => c.id !== customerId));
+    setCustomers(prev => prev.filter(customer => customer.id !== customerId));
     toast({
-      title: "تم الحذف",
+      title: "تم حذف العميل",
       description: "تم حذف العميل بنجاح",
     });
   };
 
-  const handleBlockCustomer = (customer: CustomerFollowUp) => {
-    setCustomerToBlock(customer);
-    setShowBlockDialog(true);
-  };
+  const CustomerDetailsDialog = ({ open, onClose, customer }: { open: boolean; onClose: () => void; customer: Customer }) => (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent dir="rtl" className="max-w-md">
+        <DialogHeader>
+          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            تفاصيل العميل
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Avatar>
+              <AvatarImage src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${customer.name}`} />
+              <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="text-lg font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.name}</p>
+              <p className="text-sm text-gray-500" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                عضو منذ: {new Date(customer.createdAt).toLocaleDateString('ar-SA')}
+              </p>
+            </div>
+          </div>
 
-  const confirmBlockCustomer = () => {
-    if (customerToBlock) {
-      setCustomers(prev =>
-        prev.map(c =>
-          c.id === customerToBlock.id
-            ? { ...c, isBlocked: true, blockReason: blockReason }
-            : c
-        )
-      );
-      setShowBlockDialog(false);
-      setBlockReason("");
-      setCustomerToBlock(null);
-      toast({
-        title: "تم حظر العميل",
-        description: "تم حظر العميل بنجاح",
-      });
-    }
-  };
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4 text-gray-500" />
+              <a href={`mailto:${customer.email}`} className="text-blue-600 hover:underline">
+                {customer.email}
+              </a>
+            </div>
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-500" />
+              <span>{customer.phone}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-gray-500" />
+              <span>{customer.address}</span>
+            </div>
+          </div>
 
-  const handleUnblockCustomer = (customerId: string) => {
-    setCustomers(prev =>
-      prev.map(c =>
-        c.id === customerId
-          ? { ...c, isBlocked: false, blockReason: undefined }
-          : c
-      )
+          <div className="border-t pt-4">
+            <p className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              سجل الطلبات
+            </p>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <span>عدد الطلبات: {customer.ordersCount}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <span>آخر طلب: {customer.lastOrderDate === "غير محدد" ? "غير محدد" : new Date(customer.lastOrderDate).toLocaleDateString('ar-SA')}</span>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const EditCustomerDialog = ({ open, onClose, customer, onSave }: { open: boolean; onClose: () => void; customer: Customer; onSave: (customer: Customer) => void }) => {
+    const [name, setName] = useState(customer.name);
+    const [email, setEmail] = useState(customer.email);
+    const [phone, setPhone] = useState(customer.phone);
+    const [address, setAddress] = useState(customer.address);
+
+    const handleSave = () => {
+      if (!name.trim() || !email.trim() || !phone.trim() || !address.trim()) {
+        toast({
+          title: "خطأ في البيانات",
+          description: "يرجى ملء جميع الحقول",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const updatedCustomer = { ...customer, name, email, phone, address };
+      onSave(updatedCustomer);
+      onClose();
+    };
+
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              تعديل بيانات العميل
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                اسم العميل
+              </Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="أدخل اسم العميل"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="email" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                البريد الإلكتروني
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="أدخل البريد الإلكتروني"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                رقم الهاتف
+              </Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="أدخل رقم الهاتف"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+              />
+            </div>
+            <div>
+              <Label htmlFor="address" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                العنوان
+              </Label>
+              <Textarea
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="أدخل العنوان"
+                style={{ fontFamily: 'Tajawal, sans-serif' }}
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onClose} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                إلغاء
+              </Button>
+              <Button type="button" onClick={handleSave} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                حفظ التغييرات
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
-    toast({
-      title: "تم إلغاء الحظر",
-      description: "تم إلغاء حظر العميل بنجاح",
-    });
   };
 
-  const handleSendMessage = (customerId: string) => {
-    setCustomers(prev =>
-      prev.map(c =>
-        c.id === customerId
-          ? { ...c, messageSent: true, lastMessageSent: new Date().toISOString().split('T')[0] }
-          : c
-      )
-    );
-    toast({
-      title: "تم الإرسال",
-      description: "تم إرسال رسالة للعميل",
-    });
-  };
-
-  const generateNextCustomerCode = () => {
-    if (customers.length === 0) return "C001";
-    const lastNumber = Math.max(...customers.map(c => parseInt(c.customerCode.slice(1))));
-    return `C${(lastNumber + 1).toString().padStart(3, '0')}`;
-  };
+  const AddCustomerDialog = ({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: () => void }) => (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent dir="rtl" className="max-w-md">
+        <DialogHeader>
+          <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
+            إضافة عميل جديد
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="name" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              اسم العميل
+            </Label>
+            <Input
+              id="name"
+              value={newCustomer.name}
+              onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+              placeholder="أدخل اسم العميل"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            />
+          </div>
+          <div>
+            <Label htmlFor="email" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              البريد الإلكتروني
+            </Label>
+            <Input
+              id="email"
+              type="email"
+              value={newCustomer.email}
+              onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+              placeholder="أدخل البريد الإلكتروني"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            />
+          </div>
+          <div>
+            <Label htmlFor="phone" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              رقم الهاتف
+            </Label>
+            <Input
+              id="phone"
+              value={newCustomer.phone}
+              onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+              placeholder="أدخل رقم الهاتف"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            />
+          </div>
+          <div>
+            <Label htmlFor="address" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              العنوان
+            </Label>
+            <Textarea
+              id="address"
+              value={newCustomer.address}
+              onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+              placeholder="أدخل العنوان"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+              rows={3}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              إلغاء
+            </Button>
+            <Button type="button" onClick={onSave} style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              إضافة العميل
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <Card className="shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-700 text-white">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
           <CardTitle className="flex items-center gap-2 flex-row-reverse text-lg sm:text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+            <User className="w-4 h-4 sm:w-5 sm:h-5" />
             متابعة العملاء
           </CardTitle>
         </CardHeader>
         
         <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="ابحث عن عميل بالاسم أو الجوال أو الرمز..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pr-10 text-sm"
-                style={{ fontFamily: 'Tajawal, sans-serif' }}
-              />
-            </div>
-            <Button 
-              onClick={() => setShowAddDialog(true)}
-              className="bg-purple-600 hover:bg-purple-700"
+          {/* Search */}
+          <div className="relative mb-4">
+            <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="ابحث عن عميل..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pr-10 text-sm"
               style={{ fontFamily: 'Tajawal, sans-serif' }}
-            >
-              <Plus className="w-4 h-4 ml-2" />
-              إضافة عميل جديد
-            </Button>
+            />
           </div>
 
           {/* Statistics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardContent className="p-4 text-center">
-                <Users className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                <p className="text-2xl font-bold">{totalCustomers}</p>
+                <User className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                <p className="text-2xl font-bold">{customers.length}</p>
                 <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                   إجمالي العملاء
                 </p>
@@ -234,32 +398,24 @@ const CustomerFollowUpPage = () => {
             
             <Card>
               <CardContent className="p-4 text-center">
-                <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                <p className="text-2xl font-bold">{totalSales.toFixed(2)}</p>
+                <Calendar className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                <p className="text-2xl font-bold">
+                  {customers.length > 0 ? new Date(Math.max(...customers.map(c => new Date(c.createdAt).getTime()))).toLocaleDateString('ar-SA') : 'لا يوجد'}
+                </p>
                 <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  إجمالي المبيعات
+                  تاريخ آخر انضمام
                 </p>
               </CardContent>
             </Card>
             
             <Card>
               <CardContent className="p-4 text-center">
-                <TrendingUp className={`w-8 h-8 mx-auto mb-2 ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-                <p className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {Math.abs(totalBalance).toFixed(2)}
+                <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-orange-600" />
+                <p className="text-2xl font-bold">
+                  {customers.reduce((sum, customer) => sum + customer.ordersCount, 0)}
                 </p>
                 <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  {totalBalance >= 0 ? 'رصيد العملاء' : 'مديونية العملاء'}
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="p-4 text-center">
-                <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-red-600" />
-                <p className="text-2xl font-bold text-red-600">{blockedCustomers}</p>
-                <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                  عملاء محظورين
+                  إجمالي الطلبات
                 </p>
               </CardContent>
             </Card>
@@ -268,159 +424,122 @@ const CustomerFollowUpPage = () => {
       </Card>
 
       {/* Customers List */}
-      <Card>
-        <CardHeader>
-          <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>قائمة العملاء</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>رمز العميل</th>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الاسم</th>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الجوال</th>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>آخر عملية بيع</th>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>إجمالي المبيعات</th>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الرصيد</th>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الحالة</th>
-                  <th className="p-3 text-right font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCustomers.map((customer) => (
-                  <tr key={customer.id} className="border-b hover:bg-gray-50">
-                    <td className="p-3 font-semibold">{customer.customerCode}</td>
-                    <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.name}</td>
-                    <td className="p-3" dir="ltr">{customer.phone}</td>
-                    <td className="p-3">{customer.lastPurchase}</td>
-                    <td className="p-3 font-bold text-green-600">{customer.totalAmount.toFixed(2)} ريال</td>
-                    <td className={`p-3 font-bold ${customer.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {Math.abs(customer.balance).toFixed(2)} ريال
-                    </td>
-                    <td className="p-3">
-                      {customer.isBlocked ? (
-                        <Badge variant="destructive">محظور</Badge>
-                      ) : (
-                        <Badge variant="default">نشط</Badge>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <div className="flex gap-1 flex-wrap">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(customer)}
-                        >
-                          <ShoppingCart className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditCustomer(customer)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSendMessage(customer.id)}
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                        </Button>
-                        {customer.isBlocked ? (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleUnblockCustomer(customer.id)}
-                          >
-                            إلغاء الحظر
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleBlockCustomer(customer)}
-                          >
-                            حظر
-                          </Button>
-                        )}
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteCustomer(customer.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="flex items-center gap-2 flex-row-reverse bg-blue-600 hover:bg-blue-700"
+            style={{ fontFamily: 'Tajawal, sans-serif' }}
+          >
+            <Plus className="w-4 h-4" />
+            إضافة عميل جديد
+          </Button>
+        </div>
+        
+        {filteredCustomers.map(customer => (
+          <Card key={customer.id} className="shadow-md hover:shadow-lg transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between flex-row-reverse">
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-right" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {customer.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 text-right">
+                    <a href={`mailto:${customer.email}`} className="text-blue-600 hover:underline">
+                      {customer.email}
+                    </a>
+                  </p>
+                  <p className="text-sm text-gray-600 text-right">
+                    {customer.phone}
+                  </p>
+                </div>
+                
+                <Avatar>
+                  <AvatarImage src={`https://api.dicebear.com/7.x/lorelei/svg?seed=${customer.name}`} />
+                  <AvatarFallback>{customer.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              </div>
 
-      {/* Dialogs */}
-      <CustomerDetailsDialog
-        open={showCustomerDetails}
-        onClose={() => setShowCustomerDetails(false)}
-        customer={selectedCustomer}
-        onCustomerUpdated={handleCustomerUpdated}
-      />
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    <Calendar className="w-3 h-3 ml-1" />
+                    {new Date(customer.createdAt).toLocaleDateString('ar-SA')}
+                  </Badge>
+                  <Badge>
+                    <ShoppingCart className="w-3 h-3 ml-1" />
+                    {customer.ordersCount} طلبات
+                  </Badge>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setSelectedCustomer(customer)}
+                    variant="outline"
+                    size="sm"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <User className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    onClick={() => setEditingCustomer(customer)}
+                    variant="outline"
+                    size="sm"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <Edit className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    onClick={() => handleDeleteCustomer(customer.id)}
+                    variant="destructive"
+                    size="sm"
+                    style={{ fontFamily: 'Tajawal, sans-serif' }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
 
-      <EditCustomerDialog
-        open={showEditDialog}
-        onClose={() => setShowEditDialog(false)}
-        customer={selectedCustomer}
-        onCustomerUpdated={handleCustomerUpdated}
-      />
+        {filteredCustomers.length === 0 && (
+          <Card className="shadow-md">
+            <CardContent className="p-12 text-center">
+              <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500 text-lg" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                لا يوجد عملاء مطابقين للبحث
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
+      {/* Customer Details Dialog */}
+      {selectedCustomer && (
+        <CustomerDetailsDialog
+          open={!!selectedCustomer}
+          onClose={() => setSelectedCustomer(null)}
+          customer={selectedCustomer}
+        />
+      )}
+
+      {/* Edit Customer Dialog */}
+      {editingCustomer && (
+        <EditCustomerDialog
+          open={!!editingCustomer}
+          onClose={() => setEditingCustomer(null)}
+          customer={editingCustomer}
+          onSave={handleUpdateCustomer}
+        />
+      )}
+
+      {/* Add Customer Dialog */}
       <AddCustomerDialog
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
-        onCustomerAdded={handleCustomerAdded}
-        nextCustomerCode={generateNextCustomerCode()}
+        onSave={handleAddCustomer}
       />
-
-      {/* Block Customer Dialog */}
-      <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
-        <DialogContent className="max-w-md" dir="rtl">
-          <DialogHeader>
-            <DialogTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              حظر العميل
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p style={{ fontFamily: 'Tajawal, sans-serif' }}>
-              هل أنت متأكد من حظر العميل: <strong>{customerToBlock?.name}</strong>؟
-            </p>
-            <div>
-              <Label htmlFor="blockReason" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                سبب الحظر
-              </Label>
-              <Textarea
-                id="blockReason"
-                value={blockReason}
-                onChange={(e) => setBlockReason(e.target.value)}
-                placeholder="أدخل سبب الحظر..."
-                style={{ fontFamily: 'Tajawal, sans-serif' }}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button onClick={() => setShowBlockDialog(false)} variant="outline">
-                إلغاء
-              </Button>
-              <Button onClick={confirmBlockCustomer} variant="destructive">
-                تأكيد الحظر
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
-};
-
-export default CustomerFollowUpPage;
+}
