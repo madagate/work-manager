@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BarChart3, User, Phone, Calendar, DollarSign, Package, TrendingUp } from "lucide-react";
 
-interface Purchase {
+interface Sale {
   id: string;
   date: string;
   batteryType: string;
@@ -24,7 +24,7 @@ interface Customer {
   lastPurchase?: string;
   totalPurchases: number;
   totalAmount: number;
-  purchases: Purchase[];
+  purchases: Sale[];
 }
 
 interface CustomerStatisticsProps {
@@ -119,7 +119,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                   <Package className="w-5 h-5 text-blue-600" />
                   <div>
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      {language === "ar" ? "عدد المشتريات" : "Total Purchases"}
+                      {language === "ar" ? "عدد المبيعات" : "Total Sales"}
                     </p>
                     <p className="text-2xl font-bold">{customer.totalPurchases}</p>
                   </div>
@@ -149,7 +149,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                   <Calendar className="w-5 h-5 text-purple-600" />
                   <div>
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      {language === "ar" ? "آخر شراء" : "Last Purchase"}
+                      {language === "ar" ? "آخر بيع" : "Last Sale"}
                     </p>
                     <p className="font-semibold">{customer.lastPurchase}</p>
                   </div>
@@ -163,7 +163,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                   <TrendingUp className="w-5 h-5 text-orange-600" />
                   <div>
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                      {language === "ar" ? "متوسط الشراء" : "Average Purchase"}
+                      {language === "ar" ? "متوسط البيع" : "Average Sale"}
                     </p>
                     <p className="font-semibold">
                       {Math.round(customer.totalAmount / customer.totalPurchases).toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
@@ -174,11 +174,11 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
             </Card>
           </div>
 
-          {/* Purchase History */}
+          {/* Sales History */}
           <Card>
             <CardHeader>
               <CardTitle style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                {language === "ar" ? "تاريخ المشتريات" : "Purchase History"}
+                {language === "ar" ? "تاريخ المبيعات" : "Sales History"}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -271,7 +271,7 @@ export const CustomerStatistics = ({ language = "ar" }: CustomerStatisticsProps)
                         </div>
                         <div className={`flex items-center gap-4 text-sm text-gray-500 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "عدد المشتريات:" : "Purchases:"} {customer.totalPurchases}
+                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.totalPurchases}
                           </span>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {language === "ar" ? "إجمالي المبلغ:" : "Total Amount:"} {customer.totalAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}
