@@ -37,9 +37,10 @@ interface Customer {
   blockReason?: string;
   last2Quantities?: number[];
   last2Prices?: number[];
-  lastPurchase?: string;
-  totalPurchases?: number;
-  purchases?: Sale[];
+  // Properties required by CustomerDetailsDialog
+  lastPurchase: string;
+  totalPurchases: number;
+  purchases: Sale[];
 }
 
 // Mock data - سيتم استبدالها ببيانات Supabase
@@ -60,7 +61,13 @@ const mockCustomers: Customer[] = [
       { id: "s2", date: "2024-01-10", batteryType: "بطاريات جافة", quantity: 8, pricePerKg: 30, total: 240, discount: 20, finalTotal: 220 }
     ],
     last2Quantities: [12, 8],
-    last2Prices: [25, 30]
+    last2Prices: [25, 30],
+    lastPurchase: "2024-01-15",
+    totalPurchases: 15,
+    purchases: [
+      { id: "s1", date: "2024-01-15", batteryType: "بطاريات عادية", quantity: 12, pricePerKg: 25, total: 300, discount: 0, finalTotal: 300 },
+      { id: "s2", date: "2024-01-10", batteryType: "بطاريات جافة", quantity: 8, pricePerKg: 30, total: 240, discount: 20, finalTotal: 220 }
+    ]
   },
   {
     id: "2", 
@@ -78,7 +85,13 @@ const mockCustomers: Customer[] = [
       { id: "s4", date: "2024-01-05", batteryType: "بطاريات عادية", quantity: 10, pricePerKg: 28, total: 280, discount: 0, finalTotal: 280 }
     ],
     last2Quantities: [15, 10],
-    last2Prices: [35, 28]
+    last2Prices: [35, 28],
+    lastPurchase: "2024-01-10",
+    totalPurchases: 8,
+    purchases: [
+      { id: "s3", date: "2024-01-10", batteryType: "بطاريات زجاج", quantity: 15, pricePerKg: 35, total: 525, discount: 50, finalTotal: 475 },
+      { id: "s4", date: "2024-01-05", batteryType: "بطاريات عادية", quantity: 10, pricePerKg: 28, total: 280, discount: 0, finalTotal: 280 }
+    ]
   },
   {
     id: "3",
@@ -93,7 +106,10 @@ const mockCustomers: Customer[] = [
     blockReason: "مشاكل في الدفع",
     sales: [],
     last2Quantities: [0, 0],
-    last2Prices: [0, 0]
+    last2Prices: [0, 0],
+    lastPurchase: "2024-01-05",
+    totalPurchases: 22,
+    purchases: []
   }
 ];
 
@@ -159,14 +175,7 @@ const CustomerFollowUp = () => {
   };
 
   const showCustomerStatistics = (customer: Customer) => {
-    // Convert customer to format expected by CustomerDetailsDialog
-    const customerForDialog = {
-      ...customer,
-      lastPurchase: customer.lastSale,
-      totalPurchases: customer.totalSales,
-      purchases: customer.sales
-    };
-    setSelectedCustomer(customerForDialog);
+    setSelectedCustomer(customer);
     setShowCustomerDetails(true);
   };
 
