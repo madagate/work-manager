@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BarChart3, User, Phone, Calendar, DollarSign, Package, TrendingUp } from "lucide-react";
-import { Customer } from "@/types/customer";
 
 interface Sale {
   id: string;
@@ -16,6 +15,23 @@ interface Sale {
   total: number;
   discount: number;
   finalTotal: number;
+}
+
+interface Customer {
+  id: string;
+  customerCode: string;
+  name: string;
+  phone: string;
+  description?: string;
+  lastSale: string;
+  totalAmount: number;
+  averagePrice: number;
+  sales: Sale[];
+  notes?: string;
+  isBlocked?: boolean;
+  blockReason?: string;
+  last2Quantities?: number[];
+  last2Prices?: number[];
 }
 
 interface CustomerStatisticsProps {
@@ -58,7 +74,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "عدد المبيعات" : "Total Sales"}
                     </p>
-                    <p className="text-2xl font-bold">{customer.purchases?.length || 0}</p>
+                    <p className="text-2xl font-bold">{customer.sales?.length || 0}</p>
                   </div>
                 </div>
               </CardContent>
@@ -88,7 +104,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                     <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>
                       {language === "ar" ? "آخر بيع" : "Last Sale"}
                     </p>
-                    <p className="font-semibold">{customer.lastPurchase}</p>
+                    <p className="font-semibold">{customer.lastSale}</p>
                   </div>
                 </div>
               </CardContent>
@@ -147,7 +163,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                     </tr>
                   </thead>
                   <tbody>
-                    {(customer.purchases || []).map((sale: any) => (
+                    {(customer.sales || []).map((sale) => (
                       <tr key={sale.id} className="border-b hover:bg-gray-50">
                         <td className="p-3">{sale.date}</td>
                         <td className="p-3" style={{ fontFamily: 'Tajawal, sans-serif' }}>{sale.batteryType}</td>
@@ -208,7 +224,7 @@ export const CustomerStatistics = ({ language = "ar", customers }: CustomerStati
                         </div>
                         <div className={`flex items-center gap-4 text-sm text-gray-500 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
-                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.purchases?.length || 0}
+                            {language === "ar" ? "عدد المبيعات:" : "Sales:"} {customer.sales?.length || 0}
                           </span>
                           <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
                             {language === "ar" ? "إجمالي المبلغ:" : "Total Amount:"} {customer.totalAmount.toLocaleString()} {language === "ar" ? "ريال" : "SAR"}

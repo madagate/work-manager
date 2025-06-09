@@ -5,7 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, User } from "lucide-react";
 import { AddCustomerDialog } from "./AddCustomerDialog";
-import { Customer } from "@/types/customer";
+
+interface Customer {
+  id: string;
+  customerCode: string;
+  name: string;
+  phone: string;
+  description?: string;
+  lastPurchase: string;
+  totalAmount: number;
+  averagePrice: number;
+  purchases: any[];
+  notes?: string;
+  isBlocked?: boolean;
+  blockReason?: string;
+  last2Quantities?: number[];
+  last2Prices?: number[];
+}
 
 // Mock data - سيتم استبدالها ببيانات Supabase
 const mockCustomers: Customer[] = [
@@ -44,8 +60,7 @@ const mockCustomers: Customer[] = [
 interface CustomerSearchDialogProps {
   open: boolean;
   onClose: () => void;
-  onSelectCustomer?: (customer: Customer) => void;
-  onCustomerSelect?: (customer: { id: string; name: string }) => void;
+  onSelectCustomer: (customer: Customer) => void;
   searchTerm?: string;
   language?: string;
 }
@@ -54,7 +69,6 @@ export const CustomerSearchDialog = ({
   open, 
   onClose, 
   onSelectCustomer,
-  onCustomerSelect,
   searchTerm = "",
   language = "ar" 
 }: CustomerSearchDialogProps) => {
@@ -85,21 +99,13 @@ export const CustomerSearchDialog = ({
   };
 
   const handleCustomerAdded = (customer: Customer) => {
-    if (onSelectCustomer) {
-      onSelectCustomer(customer);
-    } else if (onCustomerSelect) {
-      onCustomerSelect({ id: customer.id, name: customer.name });
-    }
+    onSelectCustomer(customer);
     setShowAddCustomer(false);
     onClose();
   };
 
   const handleCustomerSelection = (customer: Customer) => {
-    if (onSelectCustomer) {
-      onSelectCustomer(customer);
-    } else if (onCustomerSelect) {
-      onCustomerSelect({ id: customer.id, name: customer.name });
-    }
+    onSelectCustomer(customer);
     onClose();
   };
 
