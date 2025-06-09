@@ -14,10 +14,4 @@ export interface Customer {
   blockReason?: string;
   last2Quantities?: number[];
   last2Prices?: number[];
-  // إضافة الخصائص المطلوبة من CustomerFollowUpPage
-  lastSale?: string;
-  sales?: any[];
-  totalPurchases?: number;
-  totalSales?: number;
-  salesCount?: number;
 }
