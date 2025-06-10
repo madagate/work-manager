@@ -1,45 +1,23 @@
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Phone, Calendar, Package, DollarSign, TrendingUp, ShoppingCart } from "lucide-react";
-
-interface Purchase {
-  id: string;
-  date: string;
-  batteryType: string;
-  quantity: number;
-  pricePerKg: number;
-  total: number;
-  discount: number;
-  finalTotal: number;
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  lastPurchase: string;
-  totalPurchases: number;
-  totalAmount: number;
-  averagePrice: number;
-  messageSent?: boolean;
-  lastMessageSent?: string;
-  notes?: string;
-  isBlocked?: boolean;
-  blockReason?: string;
-  purchases: Purchase[];
-  last2Quantities?: number[];
-  last2Prices?: number[];
-  last2BatteryTypes?: string[];
-}
+import { User, Phone, Calendar, Package, DollarSign, TrendingUp, ShoppingCart, Edit } from "lucide-react";
+import { Customer } from "@/types";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/hooks/use-toast"; 
 
 interface CustomerDetailsDialogProps {
   open: boolean;
   onClose: () => void;
   customer: Customer | null;
+  onEditCustomer?: (customer: Customer) => void;
 }
-
-export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetailsDialogProps) => {
+export const CustomerDetailsDialog = ({ open, onClose, customer, onEditCustomer }: CustomerDetailsDialogProps) => {
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   if (!customer) return null;
 
   const getDaysSinceLastPurchase = (lastPurchase: string) => {
@@ -48,15 +26,40 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
     const diffTime = Math.abs(today.getTime() - purchaseDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
+  
+   
   };
-
+  const handleEditClick = () => {
+    setEditingCustomer(customer); // تعيين العميل الجاري تعديله
+    setShowEditDialog(true); // فتح مربع حوار التعديل
+  }
+  const handleSaveEdit = () => {
+    if (editingCustomer && onEditCustomer) {
+      onEditCustomer(editingCustomer); // تمرير العميل المعدل
+      setShowEditDialog(false); // إغلاق مربع حوار التعديل
+      toast({ title: "تم تحديث بيانات العميل بنجاح" });
+    }
+  };
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
-            إحصائيات العميل - {customer.name}
-          </DialogTitle>
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-xl" style={{ fontFamily: 'Tajawal, sans-serif' }}>
+              إحصائيات العميل - {customer.name}
+            </DialogTitle>
+            <Button
+              onClick={handleEditClick}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              style={{ fontFamily: 'Tajawal, sans-serif' }}
+            >
+              <Edit className="w-4 h-4" />
+              تعديل بيانات العميل
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -83,7 +86,9 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
                 <div className="flex items-center gap-2 flex-row-reverse">
                   <Calendar className="w-4 h-4 text-gray-500" />
                   <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>آخر شراء:</span>
-                  <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.lastPurchase} (منذ {getDaysSinceLastPurchase(customer.lastPurchase)} يوم)</span>
+                  <span style={{ fontFamily: 'Tajawal, sans-serif' }}>
+                    {customer.lastPurchase ? `${customer.lastPurchase} (منذ ${getDaysSinceLastPurchase(customer.lastPurchase)} يوم)` : "لا يوجد"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 flex-row-reverse">
                   <Badge variant={customer.isBlocked ? "destructive" : "default"}>
@@ -91,12 +96,21 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
                   </Badge>
                 </div>
               </div>
+              
+              {customer.description && (
+                <div className="mt-4">
+                  <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>الوصف: </span>
+                  <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.description}</span>
+                </div>
+              )}
+              
               {customer.notes && (
                 <div className="mt-4">
                   <span className="font-semibold" style={{ fontFamily: 'Tajawal, sans-serif' }}>ملاحظات: </span>
                   <span style={{ fontFamily: 'Tajawal, sans-serif' }}>{customer.notes}</span>
                 </div>
               )}
+              
               {customer.isBlocked && customer.blockReason && (
                 <div className="mt-4 p-3 bg-red-50 rounded-lg">
                   <span className="font-semibold text-red-800" style={{ fontFamily: 'Tajawal, sans-serif' }}>سبب الحظر: </span>
@@ -197,14 +211,14 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
                   <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>إجمالي الكمية</p>
                 </div>
                 <div className="bg-green-50 rounded-lg p-4 text-center">
-                  <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                  <p className="text-2xl font-bold text-green-600">{customer.totalAmount.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>إجمالي المبلغ (ريال)</p>
+                <img src="/assets/icons/SaudiRG.svg" alt="Custom Icon" className="w-8 h-8 mx-auto mb-2" />
+                   <p className="text-2xl font-bold text-green-600">{customer.totalAmount.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>إجمالي المبلغ  </p>
                 </div>
                 <div className="bg-purple-50 rounded-lg p-4 text-center">
                   <TrendingUp className="w-8 h-8 mx-auto mb-2 text-purple-600" />
                   <p className="text-2xl font-bold text-purple-600">{customer.averagePrice}</p>
-                  <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>متوسط السعر (ريال)</p>
+                  <p className="text-sm text-gray-600" style={{ fontFamily: 'Tajawal, sans-serif' }}>متوسط السعر  </p>
                 </div>
               </div>
             </CardContent>
@@ -264,7 +278,35 @@ export const CustomerDetailsDialog = ({ open, onClose, customer }: CustomerDetai
             </CardContent>
           </Card>
         </div>
+        
       </DialogContent>
     </Dialog>
-  );
+    {showEditDialog && editingCustomer && (
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: "Tajawal, sans-serif" }}>
+              تعديل بيانات العميل - {editingCustomer.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="اسم العميل"
+              value={editingCustomer.name}
+              onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+            />
+            <Input
+              placeholder="رقم الهاتف"
+              value={editingCustomer.phone}
+              onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+            />
+            <Button onClick={handleSaveEdit} className="w-full">
+              حفظ التعديلات
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+  </>
+);
 };

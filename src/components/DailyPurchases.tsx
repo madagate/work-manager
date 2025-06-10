@@ -6,12 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays, Plus, Trash2, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { SupplierSearchDialog } from "./SupplierSearchDialog";
 import { DateNavigation } from "./DateNavigation";
 
-interface Purchase {
+interface DailyPurchase {
   id: string;
   supplierName: string;
+  supplierCode: string;
+  supplierPhone: string;
   batteryType: string;
   quantity: number;
   price: number;
@@ -29,16 +30,36 @@ const batteryTypes = [
   "رصاص"
 ];
 
+// Mock supplier data for testing direct selection
+const mockSuppliers = [
+  {
+    id: "1",
+    supplierCode: "S001",
+    name: "مورد البطاريات الذهبية",
+    phone: "0501234567",
+    lastPurchase: "2024-01-15"
+  },
+  {
+    id: "2",
+    supplierCode: "S002", 
+    name: "شركة البطاريات المتطورة",
+    phone: "0507654321",
+    lastPurchase: "2024-01-10"
+  }
+];
+
 interface DailyPurchasesProps {
   language?: string;
 }
 
 export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [purchases, setPurchases] = useState<Purchase[]>([
+  const [purchases, setPurchases] = useState<DailyPurchase[]>([
     {
       id: "1",
       supplierName: "",
+      supplierCode: "",
+      supplierPhone: "",
       batteryType: "بطاريات عادية",
       quantity: 0,
       price: 0,
@@ -50,20 +71,17 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   ]);
   
   const [focusedCell, setFocusedCell] = useState<{row: number, col: string} | null>(null);
-  const [showSupplierDialog, setShowSupplierDialog] = useState(false);
-  const [selectedRowForSupplier, setSelectedRowForSupplier] = useState<number>(0);
-  const [supplierSearchTerm, setSupplierSearchTerm] = useState("");
   const tableRef = useRef<HTMLDivElement>(null);
   
   const isRTL = language === "ar";
 
-  const calculateTotals = (purchase: Purchase): Purchase => {
+  const calculateTotals = (purchase: DailyPurchase): DailyPurchase => {
     const total = Math.round(purchase.quantity * purchase.price);
     const finalTotal = total - purchase.discount;
     return { ...purchase, total, finalTotal };
   };
 
-  const updatePurchase = (index: number, field: keyof Purchase, value: any) => {
+  const updatePurchase = (index: number, field: keyof DailyPurchase, value: any) => {
     setPurchases(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -72,10 +90,21 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
     });
   };
 
+  const findSupplierBySearch = (searchTerm: string) => {
+    const term = searchTerm.toLowerCase().trim();
+    return mockSuppliers.find(supplier => 
+      supplier.phone === term || 
+      supplier.supplierCode.toLowerCase() === term ||
+      supplier.name.toLowerCase().includes(term)
+    );
+  };
+
   const addRow = () => {
-    const newPurchase: Purchase = {
+    const newPurchase: DailyPurchase = {
       id: Date.now().toString(),
       supplierName: "",
+      supplierCode: "",
+      supplierPhone: "",
       batteryType: "بطاريات عادية",
       quantity: 0,
       price: 0,
@@ -132,6 +161,8 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
     setPurchases([{
       id: "1",
       supplierName: "",
+      supplierCode: "",
+      supplierPhone: "",
       batteryType: "بطاريات عادية",
       quantity: 0,
       price: 0,
@@ -182,22 +213,29 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
   };
 
   const handleSupplierInput = (value: string, rowIndex: number) => {
-    updatePurchase(rowIndex, 'supplierName', value);
-    setSupplierSearchTerm(value);
+    // Check for exact match first
+    const foundSupplier = findSupplierBySearch(value);
     
-    // If supplier doesn't exist, show dialog after a short delay
-    if (value.trim() && value.length > 2) {
+    if (foundSupplier) {
+      // Direct selection - supplier found, no dialog needed
+      updatePurchase(rowIndex, 'supplierName', foundSupplier.name);
+      updatePurchase(rowIndex, 'supplierCode', foundSupplier.supplierCode);
+      updatePurchase(rowIndex, 'supplierPhone', foundSupplier.phone);
+      
+      toast({
+        title: language === "ar" ? "تم العثور على المورد" : "Supplier Found",
+        description: language === "ar" ? `تم اختيار ${foundSupplier.name}` : `Selected ${foundSupplier.name}`,
+        duration: 2000,
+      });
+      
+      // Move to next field
       setTimeout(() => {
-        setSelectedRowForSupplier(rowIndex);
-        setShowSupplierDialog(true);
-      }, 500);
+        setFocusedCell({ row: rowIndex, col: 'batteryType' });
+      }, 100);
+    } else {
+      // Update supplier name for manual entry
+      updatePurchase(rowIndex, 'supplierName', value);
     }
-  };
-
-  const handleSupplierSelect = (supplier: any) => {
-    updatePurchase(selectedRowForSupplier, 'supplierName', supplier.name);
-    setShowSupplierDialog(false);
-    setSupplierSearchTerm("");
   };
 
   const totalDailyAmount = purchases.reduce((sum, purchase) => sum + purchase.finalTotal, 0);
@@ -291,7 +329,7 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
                         onChange={(e) => handleSupplierInput(e.target.value, index)}
                         onKeyDown={(e) => handleKeyDown(e, index, 'supplierName')}
                         onFocus={() => setFocusedCell({row: index, col: 'supplierName'})}
-                        placeholder={language === "ar" ? "ابحث عن مورد..." : "Search supplier..."}
+                        placeholder={language === "ar" ? "ابحث: اسم/جوال/رمز..." : "Search: name/phone/code..."}
                         className={isRTL ? 'text-right' : 'text-left'}
                         style={{ fontFamily: 'Tajawal, sans-serif' }}
                       />
@@ -406,14 +444,6 @@ export const DailyPurchases = ({ language = "ar" }: DailyPurchasesProps) => {
           </div>
         </CardContent>
       </Card>
-
-      <SupplierSearchDialog
-        open={showSupplierDialog}
-        onClose={() => setShowSupplierDialog(false)}
-        onSupplierSelect={handleSupplierSelect}
-        searchTerm={supplierSearchTerm}
-        language={language}
-      />
     </div>
   );
 };
